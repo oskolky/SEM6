@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Corpus Manager</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --card: #21253a;
+      --border: #2e3250;
+      --accent: #5b7fff;
+      --accent2: #a78bfa;
+      --green: #34d399;
+      --red: #f87171;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --mono: 'Fira Mono', 'Courier New', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; gap: 2rem; height: 56px; }
+    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
+    header h1 span { color: var(--accent); }
+    nav { display: flex; gap: .25rem; margin-left: auto; }
+    nav button { background: none; border: none; color: var(--muted); padding: .4rem .9rem; border-radius: 6px; cursor: pointer; font-size: .88rem; transition: all .15s; }
+    nav button:hover, nav button.active { background: var(--card); color: var(--text); }
+
+    main { flex: 1; display: flex; overflow: hidden; }
+    .sidebar { width: 260px; background: var(--panel); border-right: 1px solid var(--border); padding: 1rem; overflow-y: auto; flex-shrink: 0; }
+    .sidebar h3 { font-size: .75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: .75rem; }
+    .doc-item { padding: .6rem .75rem; border-radius: 6px; cursor: pointer; margin-bottom: .25rem; border: 1px solid transparent; transition: all .15s; }
+    .doc-item:hover { background: var(--card); border-color: var(--border); }
+    .doc-item.selected { background: var(--card); border-color: var(--accent); }
+    .doc-title { font-size: .875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .no-docs { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 2rem; }
+    .sidebar-btn { width: 100%; padding: .5rem; background: var(--accent); border: none; color: white; border-radius: 6px; cursor: pointer; font-size: .85rem; margin-bottom: 1rem; transition: opacity .15s; }
+    .sidebar-btn:hover { opacity: .85; }
+
+    .content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Cards & sections */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+    .section-title { font-size: .8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: .5rem; }
+
+    /* Forms */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: .25rem; }
+    input, select, textarea { width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: .5rem .75rem; border-radius: 6px; font-size: .875rem; outline: none; transition: border-color .15s; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    .full-width { grid-column: 1 / -1; }
+    .file-drop { border: 2px dashed var(--border); border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all .15s; }
+    .file-drop:hover, .file-drop.drag { border-color: var(--accent); background: rgba(91,127,255,.05); }
+    .file-drop p { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
+    .file-name { color: var(--green); font-size: .85rem; margin-top: .5rem; }
+
+    /* Buttons */
+    .btn { padding: .5rem 1.25rem; border-radius: 6px; border: none; cursor: pointer; font-size: .875rem; font-weight: 500; transition: all .15s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { opacity: .85; }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+    .btn-danger:hover { background: rgba(248,113,113,.1); }
+    .btn-sm { padding: .3rem .75rem; font-size: .8rem; }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+    .stat-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; }
+    .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: .72rem; color: var(--muted); margin-top: .2rem; }
+
+    /* Frequency table */
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; }
+    td { padding: .45rem .75rem; border-bottom: 1px solid rgba(46,50,80,.5); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .bar-wrap { display: flex; align-items: center; gap: .5rem; }
+    .bar { height: 6px; background: var(--accent); border-radius: 3px; opacity: .7; }
+    .freq-num { color: var(--accent2); font-family: var(--mono); font-size: .8rem; min-width: 40px; }
+    .pos-badge { display: inline-block; padding: .15rem .4rem; border-radius: 4px; font-size: .7rem; font-family: var(--mono); background: var(--panel); border: 1px solid var(--border); }
+
+    /* Concordance */
+    .kwic-table { font-family: var(--mono); font-size: .82rem; }
+    .kwic-table td { padding: .35rem .5rem; }
+    .kwic-left { text-align: right; color: var(--muted); }
+    .kwic-kw { color: var(--accent); font-weight: 600; background: rgba(91,127,255,.1); padding: .1rem .3rem; border-radius: 3px; }
+    .kwic-right { color: var(--muted); }
+
+    /* POS chart */
+    .pos-chart { display: flex; flex-direction: column; gap: .4rem; }
+    .pos-row { display: flex; align-items: center; gap: .75rem; }
+    .pos-name { width: 60px; font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+    .pos-bar-wrap { flex: 1; background: var(--panel); border-radius: 4px; height: 16px; overflow: hidden; }
+    .pos-bar { height: 100%; border-radius: 4px; transition: width .4s; }
+    .pos-count { font-size: .75rem; color: var(--muted); min-width: 40px; text-align: right; }
+
+    /* Search bar */
+    .search-row { display: flex; gap: .75rem; align-items: flex-end; flex-wrap: wrap; }
+    .search-row .field { flex: 1; min-width: 180px; }
+    .search-row .field label { display: block; margin-bottom: .25rem; }
+
+    /* Alerts */
+    .alert { padding: .75rem 1rem; border-radius: 6px; font-size: .875rem; margin-bottom: 1rem; }
+    .alert-success { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.3); color: var(--green); }
+    .alert-error { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: var(--red); }
+
+    /* Loading */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 3rem; color: var(--muted); }
+    .empty-state h3 { margin-bottom: .5rem; font-size: 1rem; }
+
+    /* Morph results */
+    .morph-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: .75rem; }
+    .morph-word { font-size: 1.2rem; font-weight: 700; color: var(--accent); margin-bottom: .5rem; }
+    .morph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .5rem; }
+    .morph-field { font-size: .8rem; }
+    .morph-field span:first-child { color: var(--muted); display: block; font-size: .7rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 <span>Corpus</span>Manager</h1>
+  <nav>
+    <button class="active" onclick="showTab('corpus')">Corpus</button>
+    <button onclick="showTab('upload')">Upload</button>
+    <button onclick="showTab('frequency')">Frequency</button>
+    <button onclick="showTab('concordance')">Concordance</button>
+    <button onclick="showTab('morphology')">Morphology</button>
+    <button onclick="showTab('help')">Help</button>
+  </nav>
+</header>
+
+<main>
+  <!-- SIDEBAR: document list -->
+  <div class="sidebar">
+    <h3>Documents</h3>
+    <button class="sidebar-btn" onclick="showTab('upload')">+ Add Document</button>
+    <div id="doc-list"><div class="no-docs">No documents yet</div></div>
+  </div>
+
+  <div class="content">
+
+    <!-- CORPUS TAB -->
+    <div id="tab-corpus" class="tab-panel active">
+      <div class="card">
+        <h2>Corpus Overview</h2>
+        <div id="corpus-stats"><div class="empty-state"><h3>No documents</h3><p>Upload texts to get started.</p></div></div>
+      </div>
+      <div class="card" id="selected-doc-card" style="display:none">
+        <h2 id="selected-doc-title">Document Details</h2>
+        <div id="selected-doc-info"></div>
+        <div style="margin-top:1rem; display:flex; gap:.5rem;">
+          <button class="btn btn-danger btn-sm" onclick="deleteDoc()">Delete Document</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD TAB -->
+    <div id="tab-upload" class="tab-panel">
+      <div class="card">
+        <h2>Upload Document</h2>
+        <div id="upload-msg"></div>
+        <div class="form-grid">
+          <div class="full-width">
+            <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+              <div style="font-size:2rem">📄</div>
+              <p>Click or drag & drop a file here</p>
+              <p style="font-size:.75rem; margin-top:.25rem">Supported: TXT, PDF, DOCX, RTF</p>
+              <div class="file-name" id="file-name-display"></div>
+            </div>
+            <input type="file" id="file-input" accept=".txt,.pdf,.docx,.rtf" style="display:none" onchange="handleFileSelect(event)"/>
+          </div>
+          <div>
+            <label>Title *</label>
+            <input id="up-title" type="text" placeholder="Document title"/>
+          </div>
+          <div>
+            <label>Author</label>
+            <input id="up-author" type="text" placeholder="Author name"/>
+          </div>
+          <div>
+            <label>Genre</label>
+            <select id="up-genre">
+              <option value="">— select —</option>
+              <option>fiction</option><option>non-fiction</option><option>news</option>
+              <option>academic</option><option>legal</option><option>other</option>
+            </select>
+          </div>
+          <div>
+            <label>Year</label>
+            <input id="up-year" type="number" placeholder="2024" min="0" max="2099"/>
+          </div>
+          <div class="full-width">
+            <label>Source / Bibliographic Note</label>
+            <input id="up-source" type="text" placeholder="e.g. Journal of Linguistics, Vol. 12"/>
+          </div>
+          <div class="full-width" style="text-align:right">
+            <button class="btn btn-primary" onclick="uploadDoc()">Upload & Process</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FREQUENCY TAB -->
+    <div id="tab-frequency" class="tab-panel">
+      <div class="card">
+        <h2>Frequency Analysis</h2>
+        <div class="search-row" style="margin-bottom:1rem">
+          <div class="field">
+            <label>Document</label>
+            <select id="freq-doc"><option value="">All documents</option></select>
+          </div>
+          <div class="field">
+            <label>POS Filter</label>
+            <select id="freq-pos">
+              <option value="">All POS</option>
+              <option>NOUN</option><option>VERB</option><option>ADJ</option>
+              <option>ADV</option><option>PROPN</option><option>NUM</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Min. Frequency</label>
+            <input id="freq-min" type="number" value="1" min="1" style="width:80px"/>
+          </div>
+          <div class="field" style="display:flex;align-items:flex-end;gap:.5rem">
+            <label><input type="checkbox" id="freq-stop"/> Exclude stopwords</label>
+          </div>
+          <div style="align-self:flex-end">
+            <button class="btn btn-primary" onclick="runFrequency()">Analyse</button>
+          </div>
+        </div>
+        <div id="freq-results"></div>
+      </div>
+    </div>
+
+    <!-- CONCORDANCE TAB -->
+    <div id="tab-concordance" class="tab-panel">
+      <div class="card">
+        <h2>Concordance (KWIC)</h2>
+        <div class="search-row" style="margin-bottom:1rem">
+          <div class="field">
+            <label>Search term</label>
+            <input id="conc-query" type="text" placeholder="word or lemma"/>
+          </div>
+          <div class="field">
+            <label>Document</label>
+            <select id="conc-doc"><option value="">All documents</option></select>
+          </div>
+          <div class="field">
+            <label>Context window</label>
+            <input id="conc-window" type="number" value="5" min="1" max="20" style="width:70px"/>
+          </div>
+          <div class="field">
+            <label>POS filter</label>
+            <select id="conc-pos">
+              <option value="">All POS</option>
+              <option>NOUN</option><option>VERB</option><option>ADJ</option>
+              <option>ADV</option><option>PROPN</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end">
+            <button class="btn btn-primary" onclick="runConcordance()">Search</button>
+          </div>
+        </div>
+        <div id="conc-results"></div>
+      </div>
+    </div>
+
+    <!-- MORPHOLOGY TAB -->
+    <div id="tab-morphology" class="tab-panel">
+      <div class="card">
+        <h2>Morphological Analysis</h2>
+        <div class="search-row" style="margin-bottom:1rem">
+          <div class="field">
+            <label>Word / Lemma</label>
+            <input id="morph-query" type="text" placeholder="e.g. running, be, beautiful"/>
+          </div>
+          <div class="field">
+            <label>Document</label>
+            <select id="morph-doc"><option value="">All documents</option></select>
+          </div>
+          <div style="align-self:flex-end">
+            <button class="btn btn-primary" onclick="runMorphology()">Look up</button>
+          </div>
+        </div>
+        <div id="morph-results"></div>
+      </div>
+    </div>
+
+    <!-- HELP TAB -->
+    <div id="tab-help" class="tab-panel">
+      <div class="card">
+        <h2>📖 Help & Documentation</h2>
+        <div style="line-height:1.8; font-size:.9rem; color:#94a3b8;">
+          <h3 style="color:var(--text);margin:1rem 0 .5rem">Getting Started</h3>
+          <p>1. Go to <strong>Upload</strong> and add a text file to your corpus (TXT, PDF, DOCX, or RTF).</p>
+          <p>2. Add metadata: title, author, genre, year, source — this helps filtering later.</p>
+          <p>3. After upload, the text is automatically processed by spaCy NLP: tokenized, lemmatized, POS-tagged.</p>
+
+          <h3 style="color:var(--text);margin:1rem 0 .5rem">Frequency Analysis</h3>
+          <p><strong>Wordforms</strong> — raw surface forms as they appear in the text.</p>
+          <p><strong>Lemmas</strong> — base/dictionary forms (run = ran = runs).</p>
+          <p><strong>POS distribution</strong> — how many nouns, verbs, adjectives, etc.</p>
+          <p><strong>Type/Token Ratio (TTR)</strong> — vocabulary richness (0–1). Higher = more diverse.</p>
+
+          <h3 style="color:var(--text);margin:1rem 0 .5rem">Concordance (KWIC)</h3>
+          <p>KWIC = <em>Key Word In Context</em>. Shows every occurrence of a word with surrounding context.</p>
+          <p>Search matches both the exact wordform and its lemma (so searching "run" also finds "ran", "runs").</p>
+          <p>Use the window slider to control how many tokens appear on each side.</p>
+
+          <h3 style="color:var(--text);margin:1rem 0 .5rem">Morphology</h3>
+          <p>Look up any word to see all its grammatical forms found in the corpus: POS tag, morphological features, dependency role, and frequency.</p>
+
+          <h3 style="color:var(--text);margin:1rem 0 .5rem">POS Tags Reference</h3>
+          <table style="margin-top:.5rem">
+            <tr><th>Tag</th><th>Meaning</th></tr>
+            <tr><td><span class="pos-badge">NOUN</span></td><td>Common noun</td></tr>
+            <tr><td><span class="pos-badge">PROPN</span></td><td>Proper noun</td></tr>
+            <tr><td><span class="pos-badge">VERB</span></td><td>Verb</td></tr>
+            <tr><td><span class="pos-badge">ADJ</span></td><td>Adjective</td></tr>
+            <tr><td><span class="pos-badge">ADV</span></td><td>Adverb</td></tr>
+            <tr><td><span class="pos-badge">ADP</span></td><td>Adposition (preposition)</td></tr>
+            <tr><td><span class="pos-badge">DET</span></td><td>Determiner (the, a)</td></tr>
+            <tr><td><span class="pos-badge">PRON</span></td><td>Pronoun</td></tr>
+            <tr><td><span class="pos-badge">CONJ</span></td><td>Conjunction</td></tr>
+            <tr><td><span class="pos-badge">NUM</span></td><td>Numeral</td></tr>
+            <tr><td><span class="pos-badge">PUNCT</span></td><td>Punctuation</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const API = '';
+let selectedDocId = null;
+let allDocs = [];
+
+// ─── Navigation ─────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  [...document.querySelectorAll('nav button')]
+    .find(b => b.getAttribute('onclick') === `showTab('${name}')`)
+    ?.classList.add('active');
+  // Always refresh selects — allDocs may have been loaded after page init
+  populateDocSelects();
+}
+
+// ─── File drop ──────────────────────────────────────────────────
+const drop = document.getElementById('file-drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) { document.getElementById('file-input').files = e.dataTransfer.files; handleFileSelect({target:{files:[file]}}); }
+});
+let uploadFile = null;
+function handleFileSelect(e) {
+  uploadFile = e.target.files[0];
+  document.getElementById('file-name-display').textContent = uploadFile ? '📎 ' + uploadFile.name : '';
+  if (!document.getElementById('up-title').value && uploadFile)
+    document.getElementById('up-title').value = uploadFile.name.replace(/\.[^.]+$/, '');
+}
+
+// ─── Upload ──────────────────────────────────────────────────────
+async function uploadDoc() {
+  const title = document.getElementById('up-title').value.trim();
+  if (!uploadFile) return showMsg('upload-msg', 'Please select a file.', 'error');
+  if (!title) return showMsg('upload-msg', 'Please enter a title.', 'error');
+
+  const fd = new FormData();
+  fd.append('file', uploadFile);
+  fd.append('title', title);
+  fd.append('genre', document.getElementById('up-genre').value);
+  fd.append('author', document.getElementById('up-author').value);
+  fd.append('year', document.getElementById('up-year').value || '');
+  fd.append('source', document.getElementById('up-source').value);
+
+  showMsg('upload-msg', '<span class="spinner"></span> Processing…', 'success');
+  try {
+    const r = await fetch(API + '/api/corpus/documents', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'Upload failed');
+    showMsg('upload-msg', `✓ Uploaded "${title}" — ${data.word_count} words, ${data.tokens_processed} tokens`, 'success');
+    uploadFile = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('file-name-display').textContent = '';
+    loadDocs();
+  } catch(e) { showMsg('upload-msg', '✗ ' + e.message, 'error'); }
+}
+
+// ─── Documents ───────────────────────────────────────────────────
+async function loadDocs() {
+  const r = await fetch(API + '/api/corpus/documents');
+  allDocs = await r.json();
+  renderDocList();
+  renderCorpusStats();
+  populateDocSelects(); // always refresh selects after loading
+}
+
+function renderDocList() {
+  const el = document.getElementById('doc-list');
+  if (!allDocs.length) { el.innerHTML = '<div class="no-docs">No documents yet</div>'; return; }
+  el.innerHTML = allDocs.map(d => `
+    <div class="doc-item ${selectedDocId===d.id?'selected':''}" onclick="selectDoc(${d.id})">
+      <div class="doc-title">${esc(d.title)}</div>
+      <div class="doc-meta">${d.word_count?.toLocaleString()} words · ${d.genre||'—'}</div>
+    </div>
+  `).join('');
+}
+
+function selectDoc(id) {
+  selectedDocId = selectedDocId === id ? null : id;
+  renderDocList();
+  renderSelectedDoc();
+}
+
+function renderSelectedDoc() {
+  const card = document.getElementById('selected-doc-card');
+  if (!selectedDocId) { card.style.display = 'none'; return; }
+  const d = allDocs.find(x => x.id === selectedDocId);
+  if (!d) return;
+  card.style.display = 'block';
+  document.getElementById('selected-doc-title').textContent = d.title;
+  document.getElementById('selected-doc-info').innerHTML = `
+    <div class="morph-grid">
+      ${field('Author', d.author||'—')}${field('Genre', d.genre||'—')}
+      ${field('Year', d.year||'—')}${field('Words', d.word_count?.toLocaleString()||'—')}
+      ${field('Source', d.source||'—')}${field('File', d.filename||'—')}
+    </div>
+  `;
+}
+
+function field(label, val) {
+  return `<div class="morph-field"><span>${label}</span>${esc(String(val))}</div>`;
+}
+
+async function deleteDoc() {
+  if (!selectedDocId) return;
+  if (!confirm('Delete this document and all its tokens?')) return;
+  await fetch(API + '/api/corpus/documents/' + selectedDocId, { method: 'DELETE' });
+  selectedDocId = null;
+  loadDocs();
+  document.getElementById('selected-doc-card').style.display = 'none';
+}
+
+async function renderCorpusStats() {
+  const el = document.getElementById('corpus-stats');
+  if (!allDocs.length) {
+    el.innerHTML = '<div class="empty-state"><h3>No documents</h3><p>Upload texts to get started.</p></div>';
+    return;
+  }
+  try {
+    const r = await fetch(API + '/api/analysis/summary');
+    const d = await r.json();
+    const posColors = {NOUN:'#5b7fff',VERB:'#34d399',ADJ:'#f59e0b',ADV:'#a78bfa',PROPN:'#f87171',DET:'#64748b',PRON:'#06b6d4',ADP:'#84cc16',CONJ:'#ec4899',NUM:'#f97316'};
+    const maxPos = Math.max(...Object.values(d.pos_distribution||{}));
+    el.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val">${d.document_count}</div><div class="stat-label">Documents</div></div>
+        <div class="stat-box"><div class="stat-val">${d.total_tokens?.toLocaleString()}</div><div class="stat-label">Tokens</div></div>
+        <div class="stat-box"><div class="stat-val">${d.unique_wordforms?.toLocaleString()}</div><div class="stat-label">Unique Wordforms</div></div>
+        <div class="stat-box"><div class="stat-val">${d.unique_lemmas?.toLocaleString()}</div><div class="stat-label">Unique Lemmas</div></div>
+        <div class="stat-box"><div class="stat-val">${d.type_token_ratio}</div><div class="stat-label">Type/Token Ratio</div></div>
+      </div>
+      <div class="section-title">POS Distribution</div>
+      <div class="pos-chart">${Object.entries(d.pos_distribution||{}).slice(0,12).map(([pos,cnt])=>`
+        <div class="pos-row">
+          <div class="pos-name">${pos}</div>
+          <div class="pos-bar-wrap"><div class="pos-bar" style="width:${Math.round(cnt/maxPos*100)}%;background:${posColors[pos]||'#5b7fff'}"></div></div>
+          <div class="pos-count">${cnt.toLocaleString()}</div>
+        </div>`).join('')}
+      </div>`;
+  } catch(e) { el.innerHTML = '<div class="alert alert-error">Failed to load stats</div>'; }
+}
+
+// ─── Frequency ───────────────────────────────────────────────────
+function populateDocSelects() {
+  ['freq-doc','conc-doc','morph-doc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = '<option value="">All documents</option>' + allDocs.map(d => `<option value="${d.id}">${esc(d.title)}</option>`).join('');
+    el.value = cur;
+  });
+}
+
+async function runFrequency() {
+  const doc = document.getElementById('freq-doc').value;
+  const pos = document.getElementById('freq-pos').value;
+  const min = document.getElementById('freq-min').value;
+  const stop = document.getElementById('freq-stop').checked;
+
+  let url = `/api/analysis/frequency?min_freq=${min}&exclude_stopwords=${stop}&limit=50`;
+  if (doc) url += `&doc_id=${doc}`;
+  if (pos) url += `&pos_filter=${pos}`;
+
+  const el = document.getElementById('freq-results');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail);
+
+    const maxWf = d.wordforms[0]?.freq || 1;
+    const posColors = ['#5b7fff','#34d399','#f59e0b','#a78bfa','#f87171','#06b6d4'];
+    const posKeys = Object.keys(d.pos_distribution||{});
+
+    el.innerHTML = `
+      <div class="stats-grid" style="margin-bottom:1.5rem">
+        <div class="stat-box"><div class="stat-val">${d.total_tokens?.toLocaleString()}</div><div class="stat-label">Tokens</div></div>
+        <div class="stat-box"><div class="stat-val">${d.unique_wordforms?.toLocaleString()}</div><div class="stat-label">Unique Wordforms</div></div>
+        <div class="stat-box"><div class="stat-val">${d.unique_lemmas?.toLocaleString()}</div><div class="stat-label">Unique Lemmas</div></div>
+        <div class="stat-box"><div class="stat-val">${d.type_token_ratio}</div><div class="stat-label">TTR</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div>
+          <div class="section-title">Top Wordforms</div>
+          <table>
+            <tr><th>#</th><th>Wordform</th><th>Freq</th><th></th></tr>
+            ${d.wordforms.map((w,i)=>`<tr>
+              <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+              <td>${esc(w.word)}</td>
+              <td class="freq-num">${w.freq}</td>
+              <td><div class="bar-wrap"><div class="bar" style="width:${Math.round(w.freq/maxWf*80)}px"></div></div></td>
+            </tr>`).join('')}
+          </table>
+        </div>
+        <div>
+          <div class="section-title">Top Lemmas</div>
+          <table>
+            <tr><th>#</th><th>Lemma</th><th>Freq</th><th></th></tr>
+            ${d.lemmas.map((l,i)=>`<tr>
+              <td style="color:var(--muted);font-size:.75rem">${i+1}</td>
+              <td>${esc(l.lemma)}</td>
+              <td class="freq-num">${l.freq}</td>
+              <td><div class="bar-wrap"><div class="bar" style="width:${Math.round(l.freq/maxWf*80)}px;background:var(--accent2)"></div></div></td>
+            </tr>`).join('')}
+          </table>
+        </div>
+      </div>`;
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">${e.message}</div>`; }
+}
+
+// ─── Concordance ─────────────────────────────────────────────────
+async function runConcordance() {
+  const query = document.getElementById('conc-query').value.trim();
+  if (!query) return;
+  const doc = document.getElementById('conc-doc').value;
+  const window = document.getElementById('conc-window').value;
+  const pos = document.getElementById('conc-pos').value;
+
+  let url = `/api/concordance/search?query=${encodeURIComponent(query)}&window=${window}&limit=200`;
+  if (doc) url += `&doc_id=${doc}`;
+  if (pos) url += `&pos_filter=${pos}`;
+
+  const el = document.getElementById('conc-results');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail);
+    if (!d.results.length) { el.innerHTML = '<div class="empty-state"><h3>No matches found</h3></div>'; return; }
+
+    el.innerHTML = `
+      <div style="color:var(--muted);font-size:.8rem;margin-bottom:.75rem">${d.total_matches} matches for <strong style="color:var(--accent)">"${esc(query)}"</strong>${d.shown<d.total_matches?` · showing first ${d.shown}`:''}</div>
+      <table class="kwic-table">
+        <tr><th>Left context</th><th>Keyword</th><th>Right context</th><th>POS</th><th>Lemma</th></tr>
+        ${d.results.map(r=>`<tr>
+          <td class="kwic-left">${esc(r.left)}</td>
+          <td><span class="kwic-kw">${esc(r.keyword)}</span></td>
+          <td class="kwic-right">${esc(r.right)}</td>
+          <td><span class="pos-badge">${r.pos||''}</span></td>
+          <td style="color:var(--muted);font-size:.78rem">${esc(r.lemma||'')}</td>
+        </tr>`).join('')}
+      </table>`;
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">${e.message}</div>`; }
+}
+
+// ─── Morphology ──────────────────────────────────────────────────
+async function runMorphology() {
+  const query = document.getElementById('morph-query').value.trim();
+  if (!query) return;
+  const doc = document.getElementById('morph-doc').value;
+  let url = `/api/analysis/morphology?query=${encodeURIComponent(query)}`;
+  if (doc) url += `&doc_id=${doc}`;
+
+  const el = document.getElementById('morph-results');
+  el.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail);
+    el.innerHTML = d.map(e=>`
+      <div class="morph-card">
+        <div class="morph-word">${esc(e.wordform)}</div>
+        <div class="morph-grid">
+          ${field('Lemma', e.lemma)}
+          ${field('POS', e.pos)}
+          ${field('Tag', e.tag)}
+          ${field('Dependency', e.dep)}
+          ${field('Frequency', e.freq)}
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">${e.message}</div>`; }
+}
+
+// ─── Utilities ───────────────────────────────────────────────────
+function showMsg(id, html, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<div class="alert alert-${type}">${html}</div>`;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── Init ────────────────────────────────────────────────────────
+loadDocs();
+</script>
+</body>
+</html>
