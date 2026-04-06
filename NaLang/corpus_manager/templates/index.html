@@ -5,19 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Corpus Manager</title>
   <style>
-    :root {
-      --bg: #0f1117;
-      --panel: #1a1d27;
-      --card: #21253a;
-      --border: #2e3250;
-      --accent: #5b7fff;
-      --accent2: #a78bfa;
-      --green: #34d399;
-      --red: #f87171;
-      --text: #e2e8f0;
-      --muted: #64748b;
-      --mono: 'Fira Mono', 'Courier New', monospace;
-    }
+  :root {
+    --bg: #0a0a0b;          /* почти чёрный */
+    --panel: #121214;
+    --card: #18181b;
+    --border: #2b1b1f;      /* бордовый подтон */
+
+    --accent: #5a0f1a;      /* тёмно-бордовый (основной) */
+    --accent2: #7a1c28;     /* чуть светлее */
+
+    --green: #3fbf7f;
+    --red: #c0392b;         /* ошибки тоже в бордовую сторону */
+
+    --text: #e6e6e6;
+    --muted: #8b8b90;
+
+    --mono: 'Fira Mono', 'Courier New', monospace;
+  }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
 
@@ -39,6 +43,8 @@
     .no-docs { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 2rem; }
     .sidebar-btn { width: 100%; padding: .5rem; background: var(--accent); border: none; color: white; border-radius: 6px; cursor: pointer; font-size: .85rem; margin-bottom: 1rem; transition: opacity .15s; }
     .sidebar-btn:hover { opacity: .85; }
+    .sidebar-filter { margin-bottom: .75rem; }
+    .sidebar-filter input, .sidebar-filter select { font-size: .8rem; padding: .45rem .6rem; }
 
     .content { flex: 1; overflow-y: auto; padding: 1.5rem; }
     .tab-panel { display: none; }
@@ -143,6 +149,22 @@
   <div class="sidebar">
     <h3>Documents</h3>
     <button class="sidebar-btn" onclick="showTab('upload')">+ Add Document</button>
+    <div class="sidebar-filter">
+      <label>Search</label>
+      <input id="doc-search" type="text" placeholder="title or fragment" oninput="onDocFiltersChanged()"/>
+    </div>
+    <div class="sidebar-filter">
+      <label>Genre</label>
+      <select id="doc-genre" onchange="onDocFiltersChanged()">
+        <option value="">All genres</option>
+        <option>fiction</option><option>non-fiction</option><option>news</option>
+        <option>academic</option><option>legal</option><option>other</option>
+      </select>
+    </div>
+    <div class="sidebar-filter">
+      <label>Author</label>
+      <input id="doc-author" type="text" placeholder="author" oninput="onDocFiltersChanged()"/>
+    </div>
     <div id="doc-list"><div class="no-docs">No documents yet</div></div>
   </div>
 
@@ -158,6 +180,7 @@
         <h2 id="selected-doc-title">Document Details</h2>
         <div id="selected-doc-info"></div>
         <div style="margin-top:1rem; display:flex; gap:.5rem;">
+          <button class="btn btn-primary btn-sm" onclick="saveDocMeta()">Save Metadata</button>
           <button class="btn btn-danger btn-sm" onclick="deleteDoc()">Delete Document</button>
         </div>
       </div>
@@ -173,10 +196,10 @@
             <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
               <div style="font-size:2rem">📄</div>
               <p>Click or drag & drop a file here</p>
-              <p style="font-size:.75rem; margin-top:.25rem">Supported: TXT, PDF, DOCX, RTF</p>
+              <p style="font-size:.75rem; margin-top:.25rem">Supported: TXT, RTF, PDF, DOC, DOCX</p>
               <div class="file-name" id="file-name-display"></div>
             </div>
-            <input type="file" id="file-input" accept=".txt,.pdf,.docx,.rtf" style="display:none" onchange="handleFileSelect(event)"/>
+            <input type="file" id="file-input" accept=".txt,.rtf,.pdf,.doc,.docx" style="display:none" onchange="handleFileSelect(event)"/>
           </div>
           <div>
             <label>Title *</label>
@@ -345,6 +368,7 @@
 const API = '';
 let selectedDocId = null;
 let allDocs = [];
+let filterTimer = null;
 
 // ─── Navigation ─────────────────────────────────────────────────
 function showTab(name) {
@@ -404,11 +428,24 @@ async function uploadDoc() {
 
 // ─── Documents ───────────────────────────────────────────────────
 async function loadDocs() {
-  const r = await fetch(API + '/api/corpus/documents');
+  const qs = new URLSearchParams();
+  const search = document.getElementById('doc-search')?.value.trim();
+  const genre = document.getElementById('doc-genre')?.value.trim();
+  const author = document.getElementById('doc-author')?.value.trim();
+  if (search) qs.set('search', search);
+  if (genre) qs.set('genre', genre);
+  if (author) qs.set('author', author);
+  const url = API + '/api/corpus/documents' + (qs.toString() ? `?${qs.toString()}` : '');
+  const r = await fetch(url);
   allDocs = await r.json();
   renderDocList();
   renderCorpusStats();
   populateDocSelects(); // always refresh selects after loading
+}
+
+function onDocFiltersChanged() {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(() => loadDocs(), 250);
 }
 
 function renderDocList() {
@@ -437,9 +474,13 @@ function renderSelectedDoc() {
   document.getElementById('selected-doc-title').textContent = d.title;
   document.getElementById('selected-doc-info').innerHTML = `
     <div class="morph-grid">
-      ${field('Author', d.author||'—')}${field('Genre', d.genre||'—')}
-      ${field('Year', d.year||'—')}${field('Words', d.word_count?.toLocaleString()||'—')}
-      ${field('Source', d.source||'—')}${field('File', d.filename||'—')}
+      <div class="morph-field"><span>Title</span><input id="edit-title" type="text" value="${escAttr(d.title||'')}"/></div>
+      <div class="morph-field"><span>Author</span><input id="edit-author" type="text" value="${escAttr(d.author||'')}"/></div>
+      <div class="morph-field"><span>Genre</span><input id="edit-genre" type="text" value="${escAttr(d.genre||'')}"/></div>
+      <div class="morph-field"><span>Year</span><input id="edit-year" type="number" min="0" max="2099" value="${escAttr(d.year||'')}"/></div>
+      <div class="morph-field"><span>Source</span><input id="edit-source" type="text" value="${escAttr(d.source||'')}"/></div>
+      ${field('Words', d.word_count?.toLocaleString()||'—')}
+      ${field('File', d.filename||'—')}
     </div>
   `;
 }
@@ -455,6 +496,26 @@ async function deleteDoc() {
   selectedDocId = null;
   loadDocs();
   document.getElementById('selected-doc-card').style.display = 'none';
+}
+
+async function saveDocMeta() {
+  if (!selectedDocId) return;
+  const fd = new FormData();
+  fd.append('title', document.getElementById('edit-title')?.value ?? '');
+  fd.append('author', document.getElementById('edit-author')?.value ?? '');
+  fd.append('genre', document.getElementById('edit-genre')?.value ?? '');
+  fd.append('year', document.getElementById('edit-year')?.value ?? '');
+  fd.append('source', document.getElementById('edit-source')?.value ?? '');
+  const r = await fetch(API + '/api/corpus/documents/' + selectedDocId, { method: 'PUT', body: fd });
+  const data = await r.json();
+  if (!r.ok) {
+    alert(data.detail || 'Failed to update metadata');
+    return;
+  }
+  await loadDocs();
+  selectedDocId = data.updated;
+  renderDocList();
+  renderSelectedDoc();
 }
 
 async function renderCorpusStats() {
@@ -625,6 +686,9 @@ function showMsg(id, html, type) {
 }
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return esc(s).replace(/"/g, '&quot;');
 }
 
 // ─── Init ────────────────────────────────────────────────────────

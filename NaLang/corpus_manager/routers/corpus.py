@@ -1,5 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Query
 from typing import Optional
 import sys
 import os
@@ -12,12 +11,29 @@ router = APIRouter()
 
 
 @router.get("/documents")
-async def list_documents():
+async def list_documents(
+    search: Optional[str] = Query(None, description="Search in title or content"),
+    genre: Optional[str] = Query(None, description="Filter by genre"),
+    author: Optional[str] = Query(None, description="Filter by author"),
+):
     """List all documents in the corpus."""
     conn = get_db()
-    docs = conn.execute(
-        "SELECT id, title, filename, language, genre, author, year, source, word_count, created_at FROM documents ORDER BY created_at DESC"
-    ).fetchall()
+    sql = """SELECT id, title, filename, language, genre, author, year, source, word_count, created_at
+             FROM documents
+             WHERE 1=1"""
+    params = []
+    if search:
+        sql += " AND (title LIKE ? OR content LIKE ?)"
+        q = f"%{search.strip()}%"
+        params.extend([q, q])
+    if genre:
+        sql += " AND genre = ?"
+        params.append(genre)
+    if author:
+        sql += " AND author LIKE ?"
+        params.append(f"%{author.strip()}%")
+    sql += " ORDER BY created_at DESC"
+    docs = conn.execute(sql, params).fetchall()
     conn.close()
     return [dict(d) for d in docs]
 
@@ -59,8 +75,8 @@ async def upload_document(
     cursor = conn.cursor()
     cursor.execute(
         """INSERT INTO documents (title, filename, content, language, genre, author, year, source, word_count)
-           VALUES (?, ?, ?, 'en', ?, ?, ?, ?)""",
-        (title, file.filename, text, genre, author, year, source, word_count)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (title, file.filename, text, "en", genre, author, year, source, word_count)
     )
     doc_id = cursor.lastrowid
 
@@ -96,11 +112,16 @@ async def update_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     updates = {}
-    if title: updates["title"] = title
-    if genre: updates["genre"] = genre
-    if author: updates["author"] = author
-    if year: updates["year"] = year
-    if source: updates["source"] = source
+    if title is not None:
+        updates["title"] = title
+    if genre is not None:
+        updates["genre"] = genre
+    if author is not None:
+        updates["author"] = author
+    if year is not None:
+        updates["year"] = year
+    if source is not None:
+        updates["source"] = source
 
     if updates:
         set_clause = ", ".join(f"{k}=?" for k in updates)
