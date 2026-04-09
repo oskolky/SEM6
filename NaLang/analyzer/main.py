@@ -15,9 +15,7 @@ Endpoints:
 from __future__ import annotations
 
 import io
-import os
 import re
-import tempfile
 from pathlib import Path
 from typing import List, Optional
 
@@ -26,6 +24,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # ── Load spaCy model ──────────────────────────────────────────────────────────
@@ -53,7 +52,8 @@ app.add_middleware(
 )
 
 BASE_DIR = Path(__file__).parent
-
+RESULTS_DIR = BASE_DIR / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
 # Serve static files if directory exists
 static_dir = BASE_DIR / "static"
 if static_dir.exists():
@@ -238,7 +238,14 @@ def extract_text(filename: str, content: bytes) -> str:
     else:
         return content.decode("utf-8", errors="replace")
 
+def save_result(name: str, data: AnalyzeResponse):
+    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+    path = RESULTS_DIR / f"{safe_name}.json"
 
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(data.model_dump_json(indent=2, ensure_ascii=False))
+
+    return path
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -260,19 +267,45 @@ async def analyze(req: AnalyzeRequest):
         raise HTTPException(400, "Text cannot be empty.")
     if len(req.text) > 50_000:
         raise HTTPException(400, "Text too long (max 50 000 characters).")
-    return analyse_text(req.text)
+
+    result = analyse_text(req.text)
+
+    save_result("text_analysis", result)
+
+    return result
 
 
 @app.post("/upload", response_model=AnalyzeResponse)
 async def upload(file: UploadFile = File(...)):
     allowed = {".txt", ".pdf", ".html", ".htm", ".rtf", ".doc", ".docx"}
     ext = Path(file.filename or "").suffix.lower()
+
     if ext not in allowed:
-        raise HTTPException(400, f"Unsupported file type: {ext}. Allowed: {', '.join(allowed)}")
+        raise HTTPException(400, f"Unsupported file type: {ext}")
+
     content = await file.read()
+
     if len(content) > 10 * 1024 * 1024:
-        raise HTTPException(400, "File too large (max 10 MB).")
+        raise HTTPException(400, "File too large")
+
     text = extract_text(file.filename, content)
+
     if not text.strip():
-        raise HTTPException(400, "Could not extract text from file.")
-    return analyse_text(text)
+        raise HTTPException(400, "Could not extract text")
+
+    result = analyse_text(text)
+
+    # сохраняем по имени файла
+    save_result(file.filename, result)
+
+    return result
+
+@app.get("/download/{name}")
+async def download(name: str):
+    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+    path = RESULTS_DIR / f"{safe_name}.json"
+
+    if not path.exists():
+        raise HTTPException(404, "File not found")
+
+    return FileResponse(path, media_type="application/json", filename=path.name)
