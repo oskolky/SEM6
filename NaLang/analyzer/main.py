@@ -1,15 +1,6 @@
 """
-main.py — FastAPI backend for English syntactic analysis via spaCy.
-
 Run:
     uvicorn main:app --reload --port 8000
-
-Endpoints:
-    GET  /              → serve index.html
-    POST /analyze       → analyse text, return JSON
-    POST /upload        → upload file (PDF/DOCX/TXT/HTML/RTF), return JSON
-    GET  /health        → health check
-    GET  /docs          → Swagger UI (auto)
 """
 
 from __future__ import annotations
@@ -28,7 +19,6 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # ── Load spaCy model ──────────────────────────────────────────────────────────
-# Install: python -m spacy download en_core_web_sm
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
