@@ -1,0 +1,39 @@
+{
+  "text_length": 8,
+  "sentence_count": 1,
+  "token_count": 1,
+  "sentences": [
+    {
+      "sentence_index": 0,
+      "original": "gfdgdfgd",
+      "root_text": "gfdgdfgd",
+      "root_lemma": "gfdgdfgd",
+      "subject": null,
+      "predicate": "gfdgdfgd",
+      "obj": null,
+      "modifiers": [],
+      "tokens": [
+        {
+          "index": 0,
+          "text": "gfdgdfgd",
+          "lemma": "gfdgdfgd",
+          "pos": "PROPN",
+          "tag": "NNP",
+          "dep": "ROOT",
+          "head_index": 0,
+          "head_text": "gfdgdfgd",
+          "is_stop": false,
+          "morph": "Number=Sing"
+        }
+      ],
+      "tree": {
+        "index": 0,
+        "text": "gfdgdfgd",
+        "lemma": "gfdgdfgd",
+        "pos": "PROPN",
+        "dep": "ROOT",
+        "children": []
+      }
+    }
+  ]
+}

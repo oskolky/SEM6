@@ -3,13 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SynParser — English Syntactic Analyser</title>
+<title>SynParser — English Syntactic + Semantic Analyser</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&family=Mulish:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════
-   RESET & TOKENS
-═══════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -25,242 +22,105 @@
   --mono: 'IBM Plex Mono', monospace;
   --head: 'Syne', sans-serif;
   --body: 'Mulish', sans-serif;
-
-  --c-noun: #1B4F8A;
-  --c-verb: #2D6A4F;
-  --c-adj:  #B5860D;
-  --c-adv:  #7B3F9E;
-  --c-det:  #A0522D;
-  --c-prep: #C84B31;
-  --c-pron: #1B4F8A;
-  --c-conj: #666;
-  --c-num:  #2D6A4F;
-  --c-punct:#999;
-  --c-other:#444;
+  --c-noun: #1B4F8A; --c-verb: #2D6A4F; --c-adj: #B5860D;
+  --c-adv:  #7B3F9E; --c-det:  #A0522D; --c-prep:#C84B31;
+  --c-pron: #1B4F8A; --c-conj: #666;    --c-num: #2D6A4F;
+  --c-punct:#999;    --c-other:#444;
 }
 
 html { font-size: 15px; scroll-behavior: smooth; }
-body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--body);
-  font-weight: 400;
-  min-height: 100vh;
-  line-height: 1.6;
-}
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-weight: 400; min-height: 100vh; line-height: 1.6; }
 
-/* ═══════════════════════════════════════
-   HEADER
-═══════════════════════════════════════ */
-header {
-  background: var(--ink);
-  color: var(--paper);
-  padding: 0 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 64px;
-  position: sticky; top: 0; z-index: 100;
-  border-bottom: 3px solid var(--accent);
-}
-.logo {
-  font-family: var(--head);
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: -0.5px;
-  display: flex; align-items: center; gap: 10px;
-}
-.logo-dot {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  display: inline-block;
-  animation: pulse 2.4s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { transform: scale(1); opacity:1; }
-  50%      { transform: scale(1.4); opacity:.7; }
-}
-.header-meta {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted);
-  display: flex; gap: 20px; align-items: center;
-}
-.health-badge {
-  padding: 3px 10px;
-  border-radius: 2px;
-  font-size: 10px; font-weight: 600;
-  letter-spacing: .06em; text-transform: uppercase;
-  border: 1px solid;
-}
+/* ── HEADER ── */
+header { background: var(--ink); color: var(--paper); padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--accent); }
+.logo { font-family: var(--head); font-weight: 800; font-size: 22px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); display: inline-block; animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.7} }
+.header-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); display: flex; gap: 16px; align-items: center; }
+.health-badge { padding: 3px 10px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border: 1px solid; }
 .health-badge.ok      { color: #3FB950; border-color: #3FB950; }
 .health-badge.err     { color: var(--accent); border-color: var(--accent); }
 .health-badge.loading { color: var(--muted); border-color: var(--muted); }
+.help-btn { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .06em; padding: 4px 13px; border-radius: 2px; border: 1px solid var(--muted); background: transparent; color: var(--muted); cursor: pointer; transition: all .15s; }
+.help-btn:hover { border-color: var(--paper); color: var(--paper); }
 
-/* ── Help button ── */
-.help-btn {
-  font-family: var(--mono);
-  font-size: 11px; font-weight: 600;
-  letter-spacing: .06em;
-  padding: 4px 13px;
-  border-radius: 2px;
-  border: 1px solid var(--muted);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all .15s;
-}
-.help-btn:hover { border-color: var(--paper); color: var(--paper); background: rgba(255,255,255,.06); }
+/* ── LAYOUT ── */
+.app-grid { display: grid; grid-template-columns: 400px 1fr; min-height: calc(100vh - 64px); }
 
-/* ═══════════════════════════════════════
-   LAYOUT
-═══════════════════════════════════════ */
-.app-grid {
-  display: grid;
-  grid-template-columns: 400px 1fr;
-  min-height: calc(100vh - 64px);
-}
-
-/* ═══════════════════════════════════════
-   LEFT PANEL
-═══════════════════════════════════════ */
-.input-panel {
-  background: var(--cream);
-  border-right: 1px solid var(--wire);
-  display: flex; flex-direction: column;
-  padding: 28px 24px; gap: 16px;
-  position: sticky; top: 64px;
-  height: calc(100vh - 64px);
-  overflow-y: auto;
-}
-.panel-title {
-  font-family: var(--head); font-weight: 700;
-  font-size: 11px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--muted);
-  display: flex; align-items: center; gap: 8px;
-}
+/* ── LEFT PANEL ── */
+.input-panel { background: var(--cream); border-right: 1px solid var(--wire); display: flex; flex-direction: column; padding: 28px 24px; gap: 16px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+.panel-title { font-family: var(--head); font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .panel-title::after { content:''; flex:1; height:1px; background: var(--wire); }
-
-textarea#text-input {
-  width: 100%; flex: 1; min-height: 220px;
-  background: white; border: 1.5px solid var(--wire);
-  border-radius: 6px; padding: 14px 16px;
-  font-family: var(--mono); font-size: 13px; line-height: 1.7;
-  color: var(--ink); resize: none; transition: border-color .2s; outline: none;
-}
+textarea#text-input { width: 100%; flex: 1; min-height: 220px; background: white; border: 1.5px solid var(--wire); border-radius: 6px; padding: 14px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.7; color: var(--ink); resize: none; transition: border-color .2s; outline: none; }
 textarea#text-input:focus { border-color: var(--accent); }
 textarea#text-input::placeholder { color: var(--muted); }
-
-.drop-zone {
-  border: 2px dashed var(--wire); border-radius: 6px;
-  padding: 18px; text-align: center; cursor: pointer;
-  transition: all .2s; background: white; color: var(--muted); font-size: 13px;
-}
+.drop-zone { border: 2px dashed var(--wire); border-radius: 6px; padding: 18px; text-align: center; cursor: pointer; transition: all .2s; background: white; color: var(--muted); font-size: 13px; }
 .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: #FDF5F3; color: var(--accent); }
 .drop-zone input { display: none; }
 .drop-zone-icon { font-size: 24px; margin-bottom: 6px; }
 .drop-zone .formats { font-family: var(--mono); font-size: 10px; margin-top: 4px; letter-spacing: .04em; }
-
 .btn-row { display: flex; gap: 8px; }
-.btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 11px 20px; border: none; border-radius: 4px;
-  font-family: var(--head); font-weight: 700; font-size: 13px;
-  letter-spacing: .02em; cursor: pointer;
-  transition: transform .12s, box-shadow .12s;
-}
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border: none; border-radius: 4px; font-family: var(--head); font-weight: 700; font-size: 13px; letter-spacing: .02em; cursor: pointer; transition: transform .12s, box-shadow .12s; }
 .btn:active { transform: translateY(1px); }
-.btn-primary {
-  background: var(--accent); color: white; flex: 1;
-  justify-content: center; box-shadow: 0 3px 0 #8B2E1A;
-}
+.btn-primary { background: var(--accent); color: white; flex: 1; justify-content: center; box-shadow: 0 3px 0 #8B2E1A; }
 .btn-primary:hover { box-shadow: 0 5px 0 #8B2E1A; transform: translateY(-2px); }
 .btn-primary:disabled { background: var(--muted); box-shadow: none; cursor: not-allowed; transform: none; }
 .btn-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--wire); }
 .btn-ghost:hover { border-color: var(--ink); }
-
 .char-count { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; }
 .char-count.warn { color: var(--accent); }
-
 .stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.stat-chip {
-  background: white; border: 1px solid var(--wire); border-radius: 4px;
-  padding: 5px 12px; font-family: var(--mono); font-size: 11px;
-  display: flex; align-items: center; gap: 6px;
-}
+.stat-chip { background: white; border: 1px solid var(--wire); border-radius: 4px; padding: 5px 12px; font-family: var(--mono); font-size: 11px; display: flex; align-items: center; gap: 6px; }
 .stat-chip .stat-n { font-weight: 600; color: var(--accent); font-size: 15px; }
 
-/* ═══════════════════════════════════════
-   RIGHT PANEL
-═══════════════════════════════════════ */
+/* ── RIGHT PANEL ── */
 .result-panel { padding: 28px 32px; overflow-y: auto; }
-
-.empty-state {
-  height: 100%; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 12px; color: var(--muted); text-align: center; padding: 60px 0;
-}
+.empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); text-align: center; padding: 60px 0; }
 .empty-state-art { font-size: 56px; opacity: .25; filter: grayscale(1); }
 .empty-state h2 { font-family: var(--head); font-size: 20px; font-weight: 700; color: var(--ink); opacity: .3; }
 .empty-state p { font-size: 13px; max-width: 280px; }
 
-.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--wire); margin-bottom: 24px; }
-.tab-btn {
-  font-family: var(--head); font-size: 13px; font-weight: 600;
-  padding: 10px 20px; border: none; background: none; cursor: pointer;
-  color: var(--muted); letter-spacing: .04em;
-  border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color .15s;
-}
+/* ── TABS ── */
+.tabs { display: flex; border-bottom: 2px solid var(--wire); margin-bottom: 24px; }
+.tab-btn { font-family: var(--head); font-size: 13px; font-weight: 600; padding: 10px 20px; border: none; background: none; cursor: pointer; color: var(--muted); letter-spacing: .04em; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color .15s; }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-btn:hover { color: var(--ink); }
-
 .tab-pane { display: none; }
 .tab-pane.active { display: block; animation: fadeUp .3s ease; }
-@keyframes fadeUp { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
+/* ── SENTENCE PILLS ── */
 .sent-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .sent-pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.sent-pill {
-  padding: 4px 12px; border: 1.5px solid var(--wire); border-radius: 20px;
-  font-family: var(--mono); font-size: 11px; cursor: pointer; background: white; transition: all .15s;
-}
+.sent-pill { padding: 4px 12px; border: 1.5px solid var(--wire); border-radius: 20px; font-family: var(--mono); font-size: 11px; cursor: pointer; background: white; transition: all .15s; }
 .sent-pill.active { background: var(--ink); color: white; border-color: var(--ink); }
 .sent-pill:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
 
+/* ── SUMMARY TAB ── */
 .summary-card { background: white; border: 1px solid var(--wire); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
 .summary-orig { padding: 14px 20px; background: var(--ink); color: var(--paper); font-family: var(--mono); font-size: 13px; line-height: 1.7; border-bottom: 2px solid var(--accent); }
-.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--wire); }
+.summary-grid { display: grid; grid-template-columns: repeat(4,1fr); border-top: 1px solid var(--wire); }
 .summary-cell { padding: 14px 18px; border-right: 1px solid var(--wire); }
 .summary-cell:last-child { border-right: none; }
 .summary-label { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .summary-value { font-family: var(--head); font-size: 15px; font-weight: 600; word-break: break-word; }
-.sv-subj { color: var(--accent3); }
-.sv-pred { color: var(--accent2); }
-.sv-obj  { color: var(--accent); }
-.sv-mod  { color: var(--gold); }
+.sv-subj{color:var(--accent3)} .sv-pred{color:var(--accent2)} .sv-obj{color:var(--accent)} .sv-mod{color:var(--gold)}
 .sv-none { color: var(--muted); font-weight: 400; font-style: italic; font-size: 13px; }
 
+/* token strip */
 .token-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; padding: 16px; background: white; border: 1px solid var(--wire); border-radius: 8px; }
 .tok-chip { display: inline-flex; flex-direction: column; align-items: center; padding: 6px 10px; border-radius: 4px; border: 1.5px solid currentColor; font-family: var(--mono); font-size: 12px; cursor: default; transition: transform .1s; }
 .tok-chip:hover { transform: translateY(-2px); }
 .tok-chip .tok-text { font-weight: 600; }
 .tok-chip .tok-pos  { font-size: 9px; opacity: .75; margin-top: 2px; letter-spacing: .05em; }
 .tok-chip .tok-dep  { font-size: 9px; color: var(--muted); }
+.pos-NOUN,.pos-PROPN{color:var(--c-noun)} .pos-VERB{color:var(--c-verb)} .pos-ADJ{color:var(--c-adj)}
+.pos-ADV{color:var(--c-adv)} .pos-DET{color:var(--c-det)} .pos-ADP{color:var(--c-prep)}
+.pos-PRON{color:var(--c-pron)} .pos-CONJ,.pos-CCONJ,.pos-SCONJ{color:var(--c-conj)}
+.pos-NUM{color:var(--c-num)} .pos-PUNCT{color:var(--c-punct);border-color:transparent}
+.pos-OTHER,.pos-X,.pos-SYM{color:var(--c-other)} .is-root{background:#FFF8EC}
 
-.pos-NOUN, .pos-PROPN { color: var(--c-noun); }
-.pos-VERB { color: var(--c-verb); }
-.pos-ADJ  { color: var(--c-adj); }
-.pos-ADV  { color: var(--c-adv); }
-.pos-DET  { color: var(--c-det); }
-.pos-ADP  { color: var(--c-prep); }
-.pos-PRON { color: var(--c-pron); }
-.pos-CONJ, .pos-CCONJ, .pos-SCONJ { color: var(--c-conj); }
-.pos-NUM  { color: var(--c-num); }
-.pos-PUNCT { color: var(--c-punct); border-color: transparent; }
-.pos-OTHER, .pos-X, .pos-SYM { color: var(--c-other); }
-.is-root { background: #FFF8EC; }
-
+/* ── TOKEN TABLE ── */
 .tok-table-wrap { overflow-x: auto; }
 table.tok-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
 .tok-table th { background: var(--ink); color: var(--paper); padding: 9px 14px; text-align: left; font-family: var(--head); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
@@ -268,181 +128,193 @@ table.tok-table { width: 100%; border-collapse: collapse; font-family: var(--mon
 .tok-table tr:hover td { background: #F9F6F1; }
 .tok-table tr.is-root td { background: #FFF8EC; font-weight: 600; }
 .dep-badge { display: inline-block; padding: 2px 7px; border-radius: 2px; font-size: 10px; font-weight: 600; background: #F0EDE8; letter-spacing: .05em; }
-.dep-root  { background: var(--ink); color: white; }
-.dep-nsubj { background: #DCEEFB; color: var(--accent3); }
-.dep-dobj, .dep-obj { background: #FDEDE8; color: var(--accent); }
+.dep-root{background:var(--ink);color:white} .dep-nsubj{background:#DCEEFB;color:var(--accent3)} .dep-dobj,.dep-obj{background:#FDEDE8;color:var(--accent)}
 
+/* ── DEP TREE ── */
 .tree-section { background: white; border: 1px solid var(--wire); border-radius: 8px; overflow: hidden; }
 .tree-toolbar { padding: 10px 16px; background: var(--cream); border-bottom: 1px solid var(--wire); display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .tree-canvas-wrap { overflow: auto; padding: 20px; min-height: 220px; }
 svg.dep-svg { overflow: visible; }
 
+/* ── JSON ── */
 .json-block { background: var(--ink); color: #ABB2BF; border-radius: 8px; padding: 20px 24px; font-family: var(--mono); font-size: 12px; line-height: 1.8; white-space: pre; overflow: auto; max-height: 600px; }
-.j-key  { color: #E06C75; }
-.j-str  { color: #98C379; }
-.j-num  { color: #D19A66; }
-.j-bool { color: #56B6C2; }
-.j-null { color: #C678DD; }
-
+.j-key{color:#E06C75} .j-str{color:#98C379} .j-num{color:#D19A66} .j-bool{color:#56B6C2} .j-null{color:#C678DD}
 .copy-btn { font-family: var(--mono); font-size: 11px; padding: 4px 12px; border-radius: 3px; border: 1px solid #333; background: #1A1D23; color: #ABB2BF; cursor: pointer; transition: all .15s; margin-left: auto; }
 .copy-btn:hover { border-color: var(--accent2); color: var(--accent2); }
 
+/* ── LEGEND ── */
 .legend-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .leg { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: white; border: 1px solid var(--wire); border-radius: 20px; font-size: 11px; font-family: var(--mono); }
 .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-.spinner { width: 20px; height: 20px; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ════════════════════════════════════════
+   SEMANTICS TAB
+════════════════════════════════════════ */
 
+.sem-section { margin-bottom: 24px; }
+.sem-section-title { font-family: var(--head); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.sem-section-title::after { content:''; flex:1; height:1px; background: var(--wire); }
+
+/* NER */
+.ner-text { background: white; border: 1px solid var(--wire); border-radius: 8px; padding: 16px 18px; font-family: var(--mono); font-size: 13px; line-height: 2.2; }
+.ner-mark {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  position: relative;
+  cursor: default;
+  white-space: nowrap;
+}
+.ner-mark::after {
+  content: attr(data-label);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  vertical-align: super;
+  margin-left: 3px;
+  opacity: .8;
+}
+
+/* NER label colours */
+.ner-PERSON    { background:#DCEEFB; color:#0A3D7A; }
+.ner-NORP      { background:#E8F4FD; color:#0A3D7A; }
+.ner-ORG       { background:#E3F0FF; color:#1B4F8A; }
+.ner-GPE       { background:#FFF3CD; color:#856404; }
+.ner-LOC       { background:#FFF8E1; color:#6B4F00; }
+.ner-FAC       { background:#F0E6FF; color:#5B2D8E; }
+.ner-DATE      { background:#E8F5E9; color:#1B5E20; }
+.ner-TIME      { background:#E8F5E9; color:#1B5E20; }
+.ner-MONEY     { background:#F9FBE7; color:#558B2F; }
+.ner-PERCENT   { background:#F9FBE7; color:#558B2F; }
+.ner-QUANTITY  { background:#FFF3E0; color:#E65100; }
+.ner-CARDINAL  { background:#FFF3E0; color:#E65100; }
+.ner-ORDINAL   { background:#FFF3E0; color:#E65100; }
+.ner-PRODUCT   { background:#FCE4EC; color:#880E4F; }
+.ner-EVENT     { background:#FBE9E7; color:#BF360C; }
+.ner-WORK_OF_ART{background:#EDE7F6; color:#4527A0; }
+.ner-LAW       { background:#E0F2F1; color:#004D40; }
+.ner-LANGUAGE  { background:#E3F2FD; color:#0D47A1; }
+
+/* Entity chips list */
+.ent-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ent-chip { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-family: var(--mono); font-size: 12px; border: 1px solid transparent; }
+.ent-chip .ent-text { font-weight: 600; }
+.ent-chip .ent-label { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; opacity: .75; }
+
+/* SRL frames */
+.srl-frames { display: flex; flex-direction: column; gap: 12px; }
+.srl-frame { background: white; border: 1px solid var(--wire); border-radius: 8px; overflow: hidden; }
+.srl-frame-header { background: var(--ink); color: var(--paper); padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
+.srl-pred-word { font-family: var(--mono); font-weight: 700; font-size: 14px; color: #56D364; }
+.srl-pred-lemma { font-family: var(--mono); font-size: 11px; color: #8B949E; }
+.srl-roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1px; background: var(--wire); }
+.srl-role-cell { background: white; padding: 10px 14px; }
+.srl-role-name { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 3px; }
+.srl-role-val { font-family: var(--head); font-size: 13px; font-weight: 600; word-break: break-word; }
+.srl-role-val.r-agent     { color: var(--accent3); }
+.srl-role-val.r-patient   { color: var(--accent); }
+.srl-role-val.r-location  { color: var(--accent2); }
+.srl-role-val.r-time      { color: var(--gold); }
+.srl-role-val.r-instrument{ color: #7B3F9E; }
+.srl-role-val.r-purpose   { color: #A0522D; }
+.srl-role-val.r-manner    { color: #666; }
+.srl-role-val.r-none      { color: var(--muted); font-weight: 400; font-style: italic; font-size: 12px; }
+
+/* Keywords & noun chunks */
+.keyword-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.kw-chip { padding: 4px 12px; background: var(--ink); color: var(--paper); border-radius: 20px; font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.nc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.nc-chip { background: white; border: 1px solid var(--wire); border-radius: 6px; padding: 6px 12px; font-family: var(--mono); font-size: 12px; }
+.nc-chip .nc-text { font-weight: 600; }
+.nc-chip .nc-dep  { font-size: 10px; color: var(--muted); }
+
+/* ── SPINNER / TOAST ── */
+.spinner { width: 20px; height: 20px; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
 #toast { position: fixed; bottom: 28px; right: 28px; background: var(--ink); color: white; padding: 12px 20px; border-radius: 6px; border-left: 4px solid var(--accent); font-family: var(--mono); font-size: 12px; transform: translateY(80px); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); z-index: 999; max-width: 320px; }
 #toast.show { transform: translateY(0); opacity: 1; }
 
-/* ═══════════════════════════════════════
+/* ════════════════════════════════════════
    HELP MODAL
-═══════════════════════════════════════ */
-.help-overlay {
-  position: fixed; inset: 0;
-  background: rgba(10,12,16,.72);
-  backdrop-filter: blur(4px);
-  z-index: 500;
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; pointer-events: none;
-  transition: opacity .25s;
-}
+════════════════════════════════════════ */
+.help-overlay { position: fixed; inset: 0; background: rgba(10,12,16,.72); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .25s; }
 .help-overlay.open { opacity: 1; pointer-events: all; }
-
-.help-modal {
-  background: var(--paper);
-  border: 1.5px solid var(--wire);
-  border-radius: 12px;
-  width: min(820px, 96vw);
-  max-height: 88vh;
-  display: flex; flex-direction: column;
-  box-shadow: 0 32px 80px rgba(0,0,0,.45);
-  transform: translateY(20px) scale(.97);
-  transition: transform .3s cubic-bezier(.34,1.3,.64,1);
-  overflow: hidden;
-}
+.help-modal { background: var(--paper); border: 1.5px solid var(--wire); border-radius: 12px; width: min(820px,96vw); max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 32px 80px rgba(0,0,0,.45); transform: translateY(20px) scale(.97); transition: transform .3s cubic-bezier(.34,1.3,.64,1); overflow: hidden; }
 .help-overlay.open .help-modal { transform: translateY(0) scale(1); }
-
-.help-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 24px;
-  background: var(--ink); border-bottom: 3px solid var(--accent);
-  flex-shrink: 0;
-}
+.help-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; background: var(--ink); border-bottom: 3px solid var(--accent); flex-shrink: 0; }
 .help-title-row { display: flex; align-items: center; gap: 12px; }
 .help-icon { font-size: 22px; }
 .help-header h2 { font-family: var(--head); font-size: 18px; font-weight: 800; color: var(--paper); letter-spacing: -.3px; }
-.help-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 4px; line-height: 1; transition: background .15s, color .15s; }
+.help-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background .15s, color .15s; }
 .help-close:hover { background: rgba(255,255,255,.1); color: var(--paper); }
-
 .help-body { display: flex; flex: 1; overflow: hidden; }
-
-.help-nav {
-  width: 170px; flex-shrink: 0;
-  background: var(--cream); border-right: 1px solid var(--wire);
-  padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
-}
-.hn-btn {
-  text-align: left; padding: 9px 14px; border: none; border-radius: 6px;
-  background: none; font-family: var(--head); font-size: 12px; font-weight: 600;
-  color: var(--muted); cursor: pointer; transition: background .12s, color .12s; white-space: nowrap;
-}
+.help-nav { width: 170px; flex-shrink: 0; background: var(--cream); border-right: 1px solid var(--wire); padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.hn-btn { text-align: left; padding: 9px 14px; border: none; border-radius: 6px; background: none; font-family: var(--head); font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: background .12s, color .12s; }
 .hn-btn:hover { background: var(--wire); color: var(--ink); }
 .hn-btn.active { background: var(--ink); color: var(--paper); }
-
 .help-content { flex: 1; overflow-y: auto; padding: 24px 28px; }
-
 .hs-pane { display: none; }
 .hs-pane.active { display: block; animation: fadeUp .2s ease; }
-
 .hs-pane h3 { font-family: var(--head); font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--wire); }
-.hs-pane h3 + h3,
-.hs-pane p + h3 { margin-top: 22px; }
+.hs-pane h3+h3, .hs-pane p+h3 { margin-top: 22px; }
 .hs-pane p { font-size: 13px; color: #333; margin-bottom: 10px; line-height: 1.7; }
 .hs-pane ul { padding-left: 20px; font-size: 13px; color: #333; margin-bottom: 12px; }
 .hs-pane ul li { margin-bottom: 4px; }
-
 .help-tip { background: #FFF8EC; border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #555; margin-top: 12px; }
 .tip-label { display: block; font-family: var(--head); font-weight: 700; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 3px; }
-
 .fmt-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .fmt-chip { background: white; border: 1px solid var(--wire); border-radius: 6px; padding: 8px 14px; font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
 .fmt-ext { font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--accent); }
-
 .tab-doc-list { display: flex; flex-direction: column; gap: 10px; }
 .tdl-item { background: white; border: 1px solid var(--wire); border-radius: 6px; padding: 12px 16px; }
 .tdl-name { font-family: var(--head); font-weight: 700; font-size: 13px; color: var(--accent); margin-bottom: 4px; }
 .tdl-desc { font-size: 12px; color: #555; line-height: 1.6; }
-
 .help-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px; }
 .help-table th { background: var(--ink); color: var(--paper); padding: 7px 12px; text-align: left; font-family: var(--head); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
 .help-table td { padding: 7px 12px; border-bottom: 1px solid var(--wire); vertical-align: middle; }
 .help-table tr:last-child td { border-bottom: none; }
 .help-table tr:hover td { background: var(--cream); }
-
 .api-list { display: flex; flex-direction: column; gap: 8px; }
 .api-item { display: flex; align-items: center; gap: 10px; background: white; border: 1px solid var(--wire); border-radius: 6px; padding: 10px 14px; font-size: 12px; }
 .api-method { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px; flex-shrink: 0; }
-.api-method.get  { background: #DCEEFB; color: var(--accent3); }
-.api-method.post { background: #FDEDE8; color: var(--accent); }
-.api-url  { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; flex-shrink: 0; }
+.api-method.get{background:#DCEEFB;color:var(--accent3)} .api-method.post{background:#FDEDE8;color:var(--accent)}
+.api-url { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; }
 .api-desc { color: #666; }
-
 .help-code { background: var(--ink); color: #98C379; font-family: var(--mono); font-size: 11px; line-height: 1.7; padding: 14px 16px; border-radius: 6px; overflow-x: auto; white-space: pre; margin-top: 10px; }
-
 kbd { background: var(--cream); border: 1px solid var(--wire); border-bottom-width: 2px; border-radius: 3px; padding: 1px 7px; font-family: var(--mono); font-size: 11px; }
-
 .help-link { color: var(--accent3); text-decoration: underline; }
 .help-link:hover { color: var(--accent); }
-
 .help-footer { padding: 12px 24px; background: var(--cream); border-top: 1px solid var(--wire); font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; }
 
-/* ═══════════════════════════════════════
-   SCROLLBAR + RESPONSIVE
-═══════════════════════════════════════ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--wire); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-@media (max-width: 900px) {
-  .app-grid { grid-template-columns: 1fr; }
-  .input-panel { position: static; height: auto; }
-  .summary-grid { grid-template-columns: repeat(2,1fr); }
-  .help-nav { width: 130px; }
-}
+/* ── scrollbar / responsive ── */
+::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--wire);border-radius:3px} ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+@media(max-width:900px){.app-grid{grid-template-columns:1fr}.input-panel{position:static;height:auto}.summary-grid{grid-template-columns:repeat(2,1fr)}.help-nav{width:130px}}
 </style>
 </head>
 <body>
 
-<!-- ── HEADER ─────────────────────────────── -->
+<!-- HEADER -->
 <header>
-  <div class="logo">
-    <span class="logo-dot"></span>
-    SyntAnalyzer
-  </div>
+  <div class="logo"><span class="logo-dot"></span>SyntAnalyzer</div>
   <div class="header-meta">
     <span>spaCy · FastAPI · English NLP</span>
     <span class="health-badge loading" id="health-badge">connecting…</span>
-    <button class="help-btn" onclick="openHelp()" title="Help (?)">? Help</button>
+    <button class="help-btn" onclick="openHelp()">? Help</button>
   </div>
 </header>
 
-<!-- ── APP GRID ───────────────────────────── -->
+<!-- APP GRID -->
 <div class="app-grid">
 
-  <!-- LEFT: Input -->
+  <!-- LEFT -->
   <aside class="input-panel">
     <div class="panel-title">Input text</div>
-
-    <textarea id="text-input" placeholder="Paste English text here…
-&#10;Example: The quick brown fox jumps over the lazy dog. Researchers have discovered new methods for syntactic analysis." rows="10"></textarea>
+    <textarea id="text-input" placeholder="Paste English text here…&#10;&#10;Example: Apple is buying a U.K. startup for $1 billion. Tim Cook announced the deal on Monday." rows="10"></textarea>
     <div class="char-count" id="char-count">0 / 50 000</div>
 
     <div class="panel-title">Or upload a file</div>
-
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       <input type="file" id="file-input" accept=".txt,.pdf,.html,.htm,.rtf,.doc,.docx">
       <div class="drop-zone-icon">📄</div>
@@ -466,8 +338,8 @@ kbd { background: var(--cream); border: 1px solid var(--wire); border-bottom-wid
     </div>
   </aside>
 
-  <!-- RIGHT: Results -->
-  <main class="result-panel" id="result-panel">
+  <!-- RIGHT -->
+  <main class="result-panel">
     <div class="empty-state" id="empty-state">
       <div class="empty-state-art">🔬</div>
       <h2>No analysis yet</h2>
@@ -477,15 +349,14 @@ kbd { background: var(--cream); border: 1px solid var(--wire); border-bottom-wid
     <div id="results-container" style="display:none">
 
       <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('summary',this)">Summary</button>
+        <button class="tab-btn active"  onclick="showTab('summary',this)">Summary</button>
+        <button class="tab-btn" onclick="showTab('semantics',this)">Semantics</button>
         <button class="tab-btn" onclick="showTab('tokens',this)">Tokens</button>
         <button class="tab-btn" onclick="showTab('tree',this)">Dep Tree</button>
         <button class="tab-btn" onclick="showTab('json',this)">JSON</button>
       </div>
 
-      <div class="sent-nav">
-        <div class="sent-pills" id="sent-pills"></div>
-      </div>
+      <div class="sent-nav"><div class="sent-pills" id="sent-pills"></div></div>
 
       <!-- TAB: Summary -->
       <div class="tab-pane active" id="tab-summary">
@@ -502,13 +373,49 @@ kbd { background: var(--cream); border: 1px solid var(--wire); border-bottom-wid
         <div class="token-strip" id="token-strip"></div>
       </div>
 
+      <!-- TAB: Semantics -->
+      <div class="tab-pane" id="tab-semantics">
+
+        <!-- Sentiment -->
+        <div class="sem-section">
+          <div class="sem-section-title">🌿 Constituency Tree</div>
+          <div class="tree-section">
+            <div class="tree-toolbar">Phrase structure tree</div>
+            <div class="tree-canvas-wrap"><svg class="dep-svg" id="const-svg"></svg></div>
+          </div>
+        </div>
+
+        <!-- Named Entities -->
+        <div class="sem-section">
+          <div class="sem-section-title">🏷️ Named Entity Recognition</div>
+          <div class="ner-text" id="ner-text">—</div>
+          <div class="ent-chips" id="ent-chips"></div>
+        </div>
+
+        <!-- Semantic Roles -->
+        <div class="sem-section">
+          <div class="sem-section-title">🎬 Semantic Role Labelling</div>
+          <div class="srl-frames" id="srl-frames"></div>
+        </div>
+
+        <!-- Keywords & Noun Chunks -->
+        <div class="sem-section">
+          <div class="sem-section-title">🔑 Keywords</div>
+          <div class="keyword-chips" id="keyword-chips"></div>
+        </div>
+
+        <div class="sem-section">
+          <div class="sem-section-title">📦 Noun Chunks</div>
+          <div class="nc-chips" id="nc-chips"></div>
+        </div>
+
+      </div><!-- /tab-semantics -->
+
       <!-- TAB: Tokens -->
       <div class="tab-pane" id="tab-tokens">
         <div class="tok-table-wrap">
           <table class="tok-table">
-            <thead>
-              <tr><th>#</th><th>Token</th><th>Lemma</th><th>POS</th><th>Tag</th><th>Dep Role</th><th>Head</th><th>Stop</th><th>Morph</th></tr>
-            </thead>
+            <thead><tr><th>#</th><th>Token</th><th>Lemma</th><th>POS</th><th>Tag</th><th>Dep Role</th><th>Head</th><th>Stop</th><th>Morph</th></tr></thead>
             <tbody id="tok-tbody"></tbody>
           </table>
         </div>
@@ -517,13 +424,8 @@ kbd { background: var(--cream); border: 1px solid var(--wire); border-bottom-wid
       <!-- TAB: Dep Tree -->
       <div class="tab-pane" id="tab-tree">
         <div class="tree-section">
-          <div class="tree-toolbar">
-            🌲 Dependency tree
-            <span style="margin-left:auto; color: var(--accent);" id="tree-root-label"></span>
-          </div>
-          <div class="tree-canvas-wrap" id="tree-canvas-wrap">
-            <svg class="dep-svg" id="dep-svg"></svg>
-          </div>
+          <div class="tree-toolbar">🌲 Dependency tree (vertical)<span style="margin-left:auto;color:var(--accent)" id="tree-root-label"></span></div>
+          <div class="tree-canvas-wrap"><svg class="dep-svg" id="dep-svg"></svg></div>
         </div>
       </div>
 
@@ -540,606 +442,670 @@ kbd { background: var(--cream); border: 1px solid var(--wire); border-bottom-wid
   </main>
 </div>
 
-<!-- ── HELP MODAL ──────────────────────────── -->
+<!-- HELP MODAL -->
 <div id="help-overlay" class="help-overlay" onclick="closeHelpOutside(event)">
-  <div class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
-
+  <div class="help-modal" role="dialog" aria-modal="true">
     <div class="help-header">
-      <div class="help-title-row">
-        <span class="help-icon">🔬</span>
-        <h2 id="help-title">SynParser — User Guide</h2>
-      </div>
-      <button class="help-close" onclick="closeHelp()" aria-label="Close">✕</button>
+      <div class="help-title-row"><span class="help-icon">🔬</span><h2>SynParser — User Guide</h2></div>
+      <button class="help-close" onclick="closeHelp()">✕</button>
     </div>
-
     <div class="help-body">
-      <!-- sidebar nav -->
       <nav class="help-nav">
         <button class="hn-btn active" onclick="helpSection('start',this)">Getting Started</button>
         <button class="hn-btn" onclick="helpSection('input',this)">Input &amp; Upload</button>
         <button class="hn-btn" onclick="helpSection('tabs',this)">Result Tabs</button>
+        <button class="hn-btn" onclick="helpSection('sem',this)">Semantics</button>
         <button class="hn-btn" onclick="helpSection('pos',this)">POS Tags</button>
         <button class="hn-btn" onclick="helpSection('dep',this)">Dep Labels</button>
         <button class="hn-btn" onclick="helpSection('api',this)">API Reference</button>
         <button class="hn-btn" onclick="helpSection('keys',this)">Shortcuts</button>
       </nav>
-
       <div class="help-content">
 
-        <!-- Getting Started -->
         <div class="hs-pane active" id="hs-start">
           <h3>What is SynParser?</h3>
-          <p>SynParser performs <strong>automatic syntactic analysis</strong> of English text using the <strong>spaCy</strong> NLP library, served through a <strong>FastAPI</strong> backend.</p>
-          <p>For each sentence it computes:</p>
+          <p>SynParser performs <strong>syntactic + semantic analysis</strong> of English text using <strong>spaCy</strong>, served via a <strong>FastAPI</strong> backend.</p>
           <ul>
-            <li>🏷️ <strong>Part-of-Speech (POS)</strong> tags for every token</li>
-            <li>📝 <strong>Lemmas</strong> — base (dictionary) forms of words</li>
-            <li>🌲 <strong>Dependency tree</strong> — syntactic head-child relations</li>
-            <li>🔍 <strong>Key roles</strong> — subject, predicate, object, modifiers</li>
-            <li>🧬 <strong>Morphology</strong> — tense, number, case, etc.</li>
+            <li>🏷️ <strong>POS tagging</strong> — part of speech for every token</li>
+            <li>🌲 <strong>Dependency parsing</strong> — syntactic head-child tree</li>
+            <li>🏛️ <strong>Named Entity Recognition</strong> — people, orgs, places, dates…</li>
+            <li>🎬 <strong>Semantic Role Labelling</strong> — who did what to whom</li>
+            <li>📝 <strong>Lemmatization + Morphology</strong></li>
           </ul>
-          <div class="help-tip">
-            <span class="tip-label">Quick start</span>
-            Paste English text into the left panel → click <strong>▶ Analyse</strong> → explore results in the tabs on the right.
-          </div>
+          <div class="help-tip"><span class="tip-label">Quick start</span>Paste text → <strong>▶ Analyse</strong> → switch to <strong>Semantics</strong> tab.</div>
         </div>
 
-        <!-- Input & Upload -->
         <div class="hs-pane" id="hs-input">
           <h3>Input Text</h3>
-          <p>Paste any English text directly into the textarea. The counter shows current length (max <strong>50 000 characters</strong>).</p>
+          <p>Paste any English text (max <strong>50 000 characters</strong>). Click <strong>💾 Save</strong> to download full analysis as JSON.</p>
           <h3>File Upload</h3>
-          <p>Drag &amp; drop a file onto the dashed zone, or click it to browse. Supported formats:</p>
           <div class="fmt-grid">
             <div class="fmt-chip"><span class="fmt-ext">TXT</span>Plain text</div>
-            <div class="fmt-chip"><span class="fmt-ext">PDF</span>Via pdfplumber / pypdf</div>
-            <div class="fmt-chip"><span class="fmt-ext">HTML</span>Via BeautifulSoup</div>
-            <div class="fmt-chip"><span class="fmt-ext">RTF</span>Via striprtf</div>
-            <div class="fmt-chip"><span class="fmt-ext">DOC</span>Via python-docx</div>
-            <div class="fmt-chip"><span class="fmt-ext">DOCX</span>Via python-docx</div>
+            <div class="fmt-chip"><span class="fmt-ext">PDF</span>pdfplumber / pypdf</div>
+            <div class="fmt-chip"><span class="fmt-ext">HTML</span>BeautifulSoup</div>
+            <div class="fmt-chip"><span class="fmt-ext">RTF</span>striprtf</div>
+            <div class="fmt-chip"><span class="fmt-ext">DOC</span>python-docx</div>
+            <div class="fmt-chip"><span class="fmt-ext">DOCX</span>python-docx</div>
           </div>
-          <div class="help-tip">
-            <span class="tip-label">Note</span>
-            File size limit is <strong>10 MB</strong>. Text is extracted automatically before analysis.
-          </div>
-          <h3>Save Results</h3>
-          <p>Click <strong>💾 Save</strong> to download the full analysis as <code>analysis.json</code> — contains all sentences, tokens, trees and roles.</p>
         </div>
 
-        <!-- Result Tabs -->
         <div class="hs-pane" id="hs-tabs">
           <h3>Result Tabs</h3>
           <div class="tab-doc-list">
-            <div class="tdl-item">
-              <div class="tdl-name">Summary</div>
-              <div class="tdl-desc">Coloured token strip with POS labels + key syntactic roles (Subject / Predicate / Object / Modifiers). Hover any token chip to see its lemma, dep label, head and morphology.</div>
-            </div>
-            <div class="tdl-item">
-              <div class="tdl-name">Tokens</div>
-              <div class="tdl-desc">Full token-by-token table: index, text, lemma, POS, fine-grained tag, dependency role, head word, stop-word flag, morphological features.</div>
-            </div>
-            <div class="tdl-item">
-              <div class="tdl-name">Dep Tree</div>
-              <div class="tdl-desc">Interactive SVG dependency tree. Arcs go from dependent to head. The ROOT token is highlighted in black. Scroll horizontally for long sentences.</div>
-            </div>
-            <div class="tdl-item">
-              <div class="tdl-name">JSON</div>
-              <div class="tdl-desc">Full syntax-highlighted JSON of the current sentence. Click <strong>Copy</strong> to put it in the clipboard for use in downstream scripts or APIs.</div>
-            </div>
+            <div class="tdl-item"><div class="tdl-name">Summary</div><div class="tdl-desc">Coloured token strip + subject / predicate / object / modifiers.</div></div>
+            <div class="tdl-item"><div class="tdl-name">Semantics ✨</div><div class="tdl-desc">Constituency tree, NER highlighting, Semantic Role frames, keywords, noun chunks.</div></div>
+            <div class="tdl-item"><div class="tdl-name">Tokens</div><div class="tdl-desc">Full token table: POS, tag, dep, lemma, morphology.</div></div>
+            <div class="tdl-item"><div class="tdl-name">Dep Tree</div><div class="tdl-desc">Interactive SVG dependency arc diagram.</div></div>
+            <div class="tdl-item"><div class="tdl-name">JSON</div><div class="tdl-desc">Raw JSON of current sentence. Copy button included.</div></div>
           </div>
-          <div class="help-tip">
-            <span class="tip-label">Sentence navigation</span>
-            Use the <strong>#1 #2 …</strong> pills above the tabs to switch between sentences. Arrow keys ← → also work.
-          </div>
+          <div class="help-tip"><span class="tip-label">Navigation</span>Use #1 #2 … pills or ← → keys to switch sentences.</div>
         </div>
 
-        <!-- POS Tags -->
+        <div class="hs-pane" id="hs-sem">
+          <h3>Constituency Tree</h3>
+          <p>The app builds a phrase-structure tree for each sentence (S, NP, VP, PP, ADVP) and renders it as a top-down SVG graph in the Semantics tab.</p>
+          <h3>Named Entity Recognition (NER)</h3>
+          <p>Entities are highlighted inline in the text. Types include:</p>
+          <table class="help-table">
+            <thead><tr><th>Label</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td>PERSON</td><td>People, including fictional</td></tr>
+              <tr><td>ORG</td><td>Companies, agencies, institutions</td></tr>
+              <tr><td>GPE</td><td>Countries, cities, states</td></tr>
+              <tr><td>LOC</td><td>Other locations, bodies of water</td></tr>
+              <tr><td>DATE / TIME</td><td>Temporal expressions</td></tr>
+              <tr><td>MONEY</td><td>Monetary values</td></tr>
+              <tr><td>PRODUCT</td><td>Objects, vehicles, foods</td></tr>
+              <tr><td>EVENT</td><td>Wars, battles, sports events</td></tr>
+            </tbody>
+          </table>
+          <h3>Semantic Role Labelling (SRL)</h3>
+          <p>For each verbal predicate a frame is extracted showing:</p>
+          <ul>
+            <li><strong>Agent</strong> — who performs the action (nsubj)</li>
+            <li><strong>Patient</strong> — who/what receives it (dobj/obj)</li>
+            <li><strong>Location</strong> — where (in/at/on + place)</li>
+            <li><strong>Time</strong> — when (temporal phrases)</li>
+            <li><strong>Instrument</strong> — with/by what means</li>
+            <li><strong>Purpose</strong> — for what goal</li>
+            <li><strong>Manner</strong> — how (adverbs)</li>
+          </ul>
+          <div class="help-tip"><span class="tip-label">Note</span>SRL is heuristic (dependency-based), not a full PropBank model. For production use consider adding <code>spacy-transformers</code>.</div>
+        </div>
+
         <div class="hs-pane" id="hs-pos">
           <h3>Universal POS Tags (spaCy)</h3>
-          <p>spaCy uses the <a href="https://universaldependencies.org/u/pos/" target="_blank" rel="noopener" class="help-link">Universal POS</a> tagset:</p>
           <table class="help-table">
             <thead><tr><th>Tag</th><th>Name</th><th>Examples</th></tr></thead>
             <tbody>
               <tr><td style="color:#1B4F8A;font-weight:700">NOUN</td><td>Noun</td><td>dog, city, data</td></tr>
-              <tr><td style="color:#1B4F8A;font-weight:700">PROPN</td><td>Proper Noun</td><td>London, MIT, Alice</td></tr>
+              <tr><td style="color:#1B4F8A;font-weight:700">PROPN</td><td>Proper Noun</td><td>London, Apple, Alice</td></tr>
               <tr><td style="color:#2D6A4F;font-weight:700">VERB</td><td>Verb</td><td>run, analyse, discover</td></tr>
               <tr><td style="color:#2D6A4F;font-weight:700">AUX</td><td>Auxiliary</td><td>is, was, have, will</td></tr>
               <tr><td style="color:#B5860D;font-weight:700">ADJ</td><td>Adjective</td><td>quick, large, beautiful</td></tr>
               <tr><td style="color:#7B3F9E;font-weight:700">ADV</td><td>Adverb</td><td>quickly, very, never</td></tr>
               <tr><td style="color:#A0522D;font-weight:700">DET</td><td>Determiner</td><td>the, a, this, some</td></tr>
-              <tr><td style="color:#C84B31;font-weight:700">ADP</td><td>Adposition (Prep)</td><td>in, on, by, from</td></tr>
+              <tr><td style="color:#C84B31;font-weight:700">ADP</td><td>Adposition</td><td>in, on, by, from</td></tr>
               <tr><td style="color:#1B4F8A;font-weight:700">PRON</td><td>Pronoun</td><td>he, she, they, it</td></tr>
               <tr><td style="color:#666;font-weight:700">CCONJ</td><td>Coord. Conjunction</td><td>and, but, or</td></tr>
               <tr><td style="color:#666;font-weight:700">SCONJ</td><td>Subord. Conjunction</td><td>because, while, if</td></tr>
               <tr><td style="color:#2D6A4F;font-weight:700">NUM</td><td>Numeral</td><td>3, forty-two, 1.5</td></tr>
               <tr><td style="color:#999;font-weight:700">PUNCT</td><td>Punctuation</td><td>. , ! ? : …</td></tr>
-              <tr><td style="color:#444;font-weight:700">PART</td><td>Particle</td><td>not, 's, to (infinitive)</td></tr>
-              <tr><td style="color:#444;font-weight:700">INTJ</td><td>Interjection</td><td>oh, wow, hello</td></tr>
-              <tr><td style="color:#444;font-weight:700">SYM</td><td>Symbol</td><td>$, %, §, ©</td></tr>
+              <tr><td style="color:#444;font-weight:700">PART</td><td>Particle</td><td>not, 's, to (infinit.)</td></tr>
               <tr><td style="color:#444;font-weight:700">X</td><td>Other / Foreign</td><td>non-English words</td></tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Dep Labels -->
         <div class="hs-pane" id="hs-dep">
-          <h3>Dependency Labels (Universal Dependencies)</h3>
-          <p>Each token has a <strong>dep</strong> label describing its syntactic role relative to its head:</p>
+          <h3>Dependency Labels</h3>
           <table class="help-table">
-            <thead><tr><th>Label</th><th>Full name</th><th>Example</th></tr></thead>
+            <thead><tr><th>Label</th><th>Name</th><th>Example</th></tr></thead>
             <tbody>
-              <tr><td><span class="dep-badge dep-root">ROOT</span></td><td>Root of the sentence</td><td>The fox <u>jumps</u></td></tr>
+              <tr><td><span class="dep-badge dep-root">ROOT</span></td><td>Root</td><td>The fox <u>jumps</u></td></tr>
               <tr><td><span class="dep-badge dep-nsubj">nsubj</span></td><td>Nominal subject</td><td><u>Fox</u> jumps</td></tr>
               <tr><td><span class="dep-badge dep-dobj">dobj / obj</span></td><td>Direct object</td><td>sees <u>dog</u></td></tr>
               <tr><td><span class="dep-badge">amod</span></td><td>Adjectival modifier</td><td><u>quick</u> fox</td></tr>
               <tr><td><span class="dep-badge">advmod</span></td><td>Adverbial modifier</td><td>runs <u>fast</u></td></tr>
               <tr><td><span class="dep-badge">det</span></td><td>Determiner</td><td><u>the</u> fox</td></tr>
-              <tr><td><span class="dep-badge">prep / case</span></td><td>Prepositional modifier</td><td>jumps <u>over</u></td></tr>
-              <tr><td><span class="dep-badge">pobj / obl</span></td><td>Object of preposition</td><td>over <u>fence</u></td></tr>
+              <tr><td><span class="dep-badge">prep / case</span></td><td>Prepositional</td><td>jumps <u>over</u></td></tr>
+              <tr><td><span class="dep-badge">pobj / obl</span></td><td>Prep. object</td><td>over <u>fence</u></td></tr>
               <tr><td><span class="dep-badge">compound</span></td><td>Compound noun</td><td><u>fire</u> truck</td></tr>
               <tr><td><span class="dep-badge">aux</span></td><td>Auxiliary verb</td><td><u>has</u> jumped</td></tr>
-              <tr><td><span class="dep-badge">nsubjpass</span></td><td>Passive subject</td><td><u>Fox</u> was seen</td></tr>
-              <tr><td><span class="dep-badge">cc</span></td><td>Coordinating conj.</td><td>cats <u>and</u> dogs</td></tr>
-              <tr><td><span class="dep-badge">conj</span></td><td>Conjunct</td><td>cats and <u>dogs</u></td></tr>
-              <tr><td><span class="dep-badge">attr</span></td><td>Attribute</td><td>is a <u>scientist</u></td></tr>
+              <tr><td><span class="dep-badge">neg</span></td><td>Negation</td><td>does <u>not</u></td></tr>
+              <tr><td><span class="dep-badge">cc / conj</span></td><td>Coordination</td><td>cats <u>and</u> dogs</td></tr>
               <tr><td><span class="dep-badge">relcl</span></td><td>Relative clause</td><td>man who <u>runs</u></td></tr>
-              <tr><td><span class="dep-badge">xcomp</span></td><td>Open clausal complement</td><td>want <u>to go</u></td></tr>
+              <tr><td><span class="dep-badge">xcomp</span></td><td>Open clausal comp.</td><td>want <u>to go</u></td></tr>
               <tr><td><span class="dep-badge">ccomp</span></td><td>Clausal complement</td><td>said <u>that…</u></td></tr>
-              <tr><td><span class="dep-badge">neg</span></td><td>Negation</td><td>does <u>not</u> run</td></tr>
-              <tr><td><span class="dep-badge">mark</span></td><td>Marker</td><td><u>because</u> she…</td></tr>
-              <tr><td><span class="dep-badge">punct</span></td><td>Punctuation</td><td>Hello<u>.</u></td></tr>
             </tbody>
           </table>
         </div>
 
-        <!-- API Reference -->
         <div class="hs-pane" id="hs-api">
           <h3>API Endpoints</h3>
           <div class="api-list">
-            <div class="api-item"><div class="api-method get">GET</div><code class="api-url">/health</code><div class="api-desc">Server status + loaded spaCy model name</div></div>
-            <div class="api-item"><div class="api-method post">POST</div><code class="api-url">/analyze</code><div class="api-desc">Analyse raw text. Body: <code>{"text": "..."}</code></div></div>
-            <div class="api-item"><div class="api-method post">POST</div><code class="api-url">/upload</code><div class="api-desc">Upload a file (multipart/form-data, field: <code>file</code>)</div></div>
-            <div class="api-item"><div class="api-method get">GET</div><code class="api-url">/docs</code><div class="api-desc">Interactive Swagger UI (auto-generated by FastAPI)</div></div>
-            <div class="api-item"><div class="api-method get">GET</div><code class="api-url">/redoc</code><div class="api-desc">ReDoc documentation page</div></div>
+            <div class="api-item"><div class="api-method get">GET</div><code class="api-url">/health</code><div class="api-desc">Status and spaCy model</div></div>
+            <div class="api-item"><div class="api-method post">POST</div><code class="api-url">/analyze</code><div class="api-desc">Body: <code>{"text":"…"}</code></div></div>
+            <div class="api-item"><div class="api-method post">POST</div><code class="api-url">/upload</code><div class="api-desc">multipart file upload</div></div>
+            <div class="api-item"><div class="api-method get">GET</div><code class="api-url">/docs</code><div class="api-desc">Swagger UI</div></div>
           </div>
-          <h3>Response shape (sentence object)</h3>
-          <pre class="help-code">{
-  "sentence_index": 0,
-  "original":   "The fox jumps.",
-  "root_text":  "jumps",
-  "root_lemma": "jump",
-  "subject":    "fox",
-  "predicate":  "jumps",
-  "obj":        null,
-  "modifiers":  [],
-  "tokens": [
-    { "index": 0, "text": "The", "lemma": "the",
-      "pos": "DET", "tag": "DT", "dep": "det",
-      "head_index": 1, "head_text": "fox",
-      "is_stop": true,
-      "morph": "Definite=Def|PronType=Art" },
-    ...
-  ],
-  "tree": { "index": 2, "text": "jumps",
-    "pos": "VERB", "dep": "ROOT",
-    "children": [ ... ] }
-}</pre>
+          <h3>New fields in v2 response</h3>
+          <pre class="help-code">"semantic": {
+  "entities": [{ "text":"Apple","label":"ORG",
+                 "label_desc":"Companies…" }],
+  "constituency_tree": { "label":"S", "children":[...] },
+  "semantic_roles": [{ "predicate":"buying",
+    "agent":"Apple", "patient":"a startup",
+    "location":null, "time":null }],
+  "keywords": ["apple","startup","buy"],
+  "noun_chunks": [{"text":"a U.K. startup",
+                   "root_dep":"dobj"}]
+},
+"doc_entities": [ … ]   // whole-text deduped</pre>
         </div>
 
-        <!-- Shortcuts -->
         <div class="hs-pane" id="hs-keys">
           <h3>Keyboard Shortcuts</h3>
           <table class="help-table">
             <thead><tr><th>Key</th><th>Action</th></tr></thead>
             <tbody>
-              <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td>Run analysis</td></tr>
-              <tr><td><kbd>Escape</kbd></td><td>Close this help window</td></tr>
-              <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>Previous / Next sentence (when results are shown)</td></tr>
-              <tr><td><kbd>1</kbd> – <kbd>4</kbd></td><td>Switch result tab (Summary / Tokens / Tree / JSON)</td></tr>
-              <tr><td><kbd>?</kbd></td><td>Open / close help</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Run analysis</td></tr>
+              <tr><td><kbd>Escape</kbd></td><td>Close help</td></tr>
+              <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>Prev / Next sentence</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>Switch tabs (Summary…JSON)</td></tr>
+              <tr><td><kbd>?</kbd></td><td>Toggle help</td></tr>
             </tbody>
           </table>
-          <div class="help-tip">
-            <span class="tip-label">Note</span>
-            Shortcuts are active when the textarea is <strong>not</strong> focused. Click outside the textarea first.
-          </div>
         </div>
 
       </div><!-- /help-content -->
     </div><!-- /help-body -->
+    <div class="help-footer">SynParser v2.0 · spaCy · <a href="/docs" target="_blank" class="help-link">Swagger UI ↗</a></div>
+  </div>
+</div>
 
-    <div class="help-footer">
-      SynParser v1.0 &nbsp;·&nbsp; spaCy en_core_web_sm/md/lg &nbsp;·&nbsp;
-      <a href="/docs" target="_blank" class="help-link">Swagger UI ↗</a>
-    </div>
-  </div><!-- /help-modal -->
-</div><!-- /help-overlay -->
-
-<!-- Toast -->
 <div id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════
-// State
-// ══════════════════════════════════════════════
-const API = '';  // same origin; change to 'http://localhost:8000' if separate
-let allResults = null;
-let currentSentIdx = 0;
-let currentFile = null;
+// ══ State ══════════════════════════════════════
+const API = '';
+let allResults = null, currentSentIdx = 0, currentFile = null;
 
-// ══════════════════════════════════════════════
-// Init
-// ══════════════════════════════════════════════
+// ══ Init ═══════════════════════════════════════
 (async function init() {
   checkHealth();
   buildLegend();
-
   document.getElementById('text-input').addEventListener('input', e => {
     const n = e.target.value.length;
     const el = document.getElementById('char-count');
     el.textContent = `${n.toLocaleString()} / 50 000`;
     el.classList.toggle('warn', n > 45000);
   });
-
   document.getElementById('file-input').addEventListener('change', e => {
     if (e.target.files[0]) handleFile(e.target.files[0]);
   });
-
   const dz = document.getElementById('drop-zone');
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
   dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('dragover');
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-  });
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 })();
 
 async function checkHealth() {
   const badge = document.getElementById('health-badge');
   try {
-    const r = await fetch(`${API}/health`);
-    const d = await r.json();
+    const d = await (await fetch(`${API}/health`)).json();
     badge.textContent = `spaCy: ${d.spacy_model}`;
     badge.className = 'health-badge ok';
-  } catch {
-    badge.textContent = 'server offline';
-    badge.className = 'health-badge err';
-  }
+  } catch { badge.textContent = 'server offline'; badge.className = 'health-badge err'; }
 }
 
 function handleFile(file) {
   currentFile = file;
-  const dz = document.getElementById('drop-zone');
-  dz.innerHTML = `<div class="drop-zone-icon">📄</div>
+  document.getElementById('drop-zone').innerHTML = `<div class="drop-zone-icon">📄</div>
     <div style="color:var(--accent2);font-weight:600">${file.name}</div>
     <div class="formats">${(file.size/1024).toFixed(1)} KB</div>`;
   toast(`File ready: ${file.name}`);
 }
 
-// ══════════════════════════════════════════════
-// Analysis
-// ══════════════════════════════════════════════
+// ══ Analysis ═══════════════════════════════════
 async function runAnalysis() {
-  const btn  = document.getElementById('analyse-btn');
-  const lbl  = document.getElementById('btn-label');
-  const spin = document.getElementById('spinner');
-  btn.disabled = true;
-  lbl.style.display = 'none';
-  spin.style.display = 'block';
-
+  const btn=document.getElementById('analyse-btn'), lbl=document.getElementById('btn-label'), spin=document.getElementById('spinner');
+  btn.disabled=true; lbl.style.display='none'; spin.style.display='block';
   try {
     let data;
     if (currentFile) {
-      const fd = new FormData();
-      fd.append('file', currentFile);
-      const r = await fetch(`${API}/upload`, { method: 'POST', body: fd });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      const fd = new FormData(); fd.append('file', currentFile);
+      const r = await fetch(`${API}/upload`, { method:'POST', body:fd });
+      if (!r.ok) throw new Error((await r.json()).detail);
       data = await r.json();
     } else {
       const text = document.getElementById('text-input').value.trim();
       if (!text) { toast('Please enter some text first.'); return; }
-      const r = await fetch(`${API}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      const r = await fetch(`${API}/analyze`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text}) });
+      if (!r.ok) throw new Error((await r.json()).detail);
       data = await r.json();
     }
-
-    allResults = data;
-    currentSentIdx = 0;
+    allResults = data; currentSentIdx = 0;
     renderResults();
     toast(`✓ ${data.sentence_count} sentence${data.sentence_count!==1?'s':''} analysed`);
-  } catch (err) {
-    toast(`Error: ${err.message}`, true);
-  } finally {
-    btn.disabled = false;
-    lbl.style.display = 'inline';
-    spin.style.display = 'none';
-  }
+  } catch(err) { toast(`Error: ${err.message}`, true); }
+  finally { btn.disabled=false; lbl.style.display='inline'; spin.style.display='none'; }
 }
 
 function downloadJson() {
   if (!allResults) { toast('No data to save'); return; }
-  const blob = new Blob([JSON.stringify(allResults, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'analysis.json';
-  a.click();
-  toast('Saved as analysis.json');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(allResults,null,2)],{type:'application/json'}));
+  a.download = 'analysis.json'; a.click(); toast('Saved as analysis.json');
 }
 
 function clearAll() {
-  document.getElementById('text-input').value = '';
-  document.getElementById('char-count').textContent = '0 / 50 000';
-  currentFile = null; allResults = null;
-  document.getElementById('results-container').style.display = 'none';
-  document.getElementById('empty-state').style.display = 'flex';
-  document.getElementById('stats-row').style.display = 'none';
-  const dz = document.getElementById('drop-zone');
-  dz.innerHTML = `<input type="file" id="file-input" accept=".txt,.pdf,.html,.htm,.rtf,.doc,.docx">
-    <div class="drop-zone-icon">📄</div>
-    <div>Drop file here or click to browse</div>
+  document.getElementById('text-input').value='';
+  document.getElementById('char-count').textContent='0 / 50 000';
+  currentFile=null; allResults=null;
+  document.getElementById('results-container').style.display='none';
+  document.getElementById('empty-state').style.display='flex';
+  document.getElementById('stats-row').style.display='none';
+  const dz=document.getElementById('drop-zone');
+  dz.innerHTML=`<input type="file" id="file-input" accept=".txt,.pdf,.html,.htm,.rtf,.doc,.docx">
+    <div class="drop-zone-icon">📄</div><div>Drop file here or click to browse</div>
     <div class="formats">TXT · PDF · HTML · RTF · DOC · DOCX</div>`;
-  document.getElementById('file-input').addEventListener('change', e => {
-    if (e.target.files[0]) handleFile(e.target.files[0]);
-  });
+  document.getElementById('file-input').addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
 }
 
-// ══════════════════════════════════════════════
-// Render
-// ══════════════════════════════════════════════
+// ══ Render ═════════════════════════════════════
 function renderResults() {
-  document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('results-container').style.display = 'block';
-  document.getElementById('stats-row').style.display = 'flex';
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('results-container').style.display='block';
+  document.getElementById('stats-row').style.display='flex';
   document.getElementById('stat-sents').textContent = allResults.sentence_count;
   document.getElementById('stat-tokens').textContent = allResults.token_count;
   document.getElementById('stat-chars').textContent = allResults.text_length.toLocaleString();
-
-  const pills = document.getElementById('sent-pills');
-  pills.innerHTML = allResults.sentences.map((s, i) =>
-    `<button class="sent-pill${i===0?' active':''}" onclick="selectSent(${i})">#${i+1}</button>`
-  ).join('');
-
+  document.getElementById('sent-pills').innerHTML = allResults.sentences.map((s,i)=>
+    `<button class="sent-pill${i===0?' active':''}" onclick="selectSent(${i})">#${i+1}</button>`).join('');
   showSentence(0);
 }
 
 function selectSent(i) {
-  currentSentIdx = i;
-  document.querySelectorAll('.sent-pill').forEach((p,j) => p.classList.toggle('active', j===i));
+  currentSentIdx=i;
+  document.querySelectorAll('.sent-pill').forEach((p,j)=>p.classList.toggle('active',j===i));
   showSentence(i);
 }
 
 function showSentence(i) {
   const s = allResults.sentences[i];
-  document.getElementById('sum-orig').textContent = s.original;
-  setRole('sum-subj', s.subject);
-  setRole('sum-pred', s.predicate);
-  setRole('sum-obj', s.obj);
-  setRole('sum-mod', s.modifiers && s.modifiers.length ? s.modifiers.join(', ') : null);
 
-  const strip = document.getElementById('token-strip');
-  strip.innerHTML = s.tokens.map(t => {
-    const isRoot = t.dep === 'ROOT';
-    return `<div class="tok-chip pos-${t.pos}${isRoot?' is-root':''}" title="lemma: ${t.lemma}\ndep: ${t.dep}\nhead: ${t.head_text}\nmorph: ${t.morph||'—'}">
+  // Summary
+  document.getElementById('sum-orig').textContent = s.original;
+  setRole('sum-subj', s.subject); setRole('sum-pred', s.predicate);
+  setRole('sum-obj', s.obj);
+  setRole('sum-mod', s.modifiers&&s.modifiers.length ? s.modifiers.join(', ') : null);
+
+  // Token strip
+  document.getElementById('token-strip').innerHTML = s.tokens.map(t => {
+    const ir = t.dep==='ROOT';
+    return `<div class="tok-chip pos-${t.pos}${ir?' is-root':''}" title="lemma:${t.lemma}\ndep:${t.dep}\nhead:${t.head_text}\nmorph:${t.morph||'—'}">
       <span class="tok-text">${esc(t.text)}</span>
       <span class="tok-pos">${t.pos}</span>
-      <span class="tok-dep">${t.dep}</span>
-    </div>`;
+      <span class="tok-dep">${t.dep}</span></div>`;
   }).join('');
 
-  const tbody = document.getElementById('tok-tbody');
-  tbody.innerHTML = s.tokens.map(t => {
-    const isRoot = t.dep === 'ROOT';
-    const depClass = t.dep === 'ROOT' ? 'dep-root' : t.dep === 'nsubj' ? 'dep-nsubj' : (t.dep==='dobj'||t.dep==='obj') ? 'dep-dobj' : '';
-    return `<tr class="${isRoot?'is-root':''}">
-      <td>${t.index}</td>
-      <td><strong>${esc(t.text)}</strong></td>
-      <td>${esc(t.lemma)}</td>
+  // Token table
+  document.getElementById('tok-tbody').innerHTML = s.tokens.map(t => {
+    const ir=t.dep==='ROOT';
+    const dc=t.dep==='ROOT'?'dep-root':t.dep==='nsubj'?'dep-nsubj':(t.dep==='dobj'||t.dep==='obj')?'dep-dobj':'';
+    return `<tr class="${ir?'is-root':''}">
+      <td>${t.index}</td><td><strong>${esc(t.text)}</strong></td><td>${esc(t.lemma)}</td>
       <td style="color:var(--c-${posVar(t.pos)});font-weight:600">${t.pos}</td>
       <td style="color:var(--muted)">${t.tag}</td>
-      <td><span class="dep-badge ${depClass}">${t.dep}</span></td>
-      <td>${esc(t.head_text)}</td>
-      <td>${t.is_stop ? '·' : ''}</td>
-      <td style="color:var(--muted);font-size:10px">${t.morph||''}</td>
-    </tr>`;
+      <td><span class="dep-badge ${dc}">${t.dep}</span></td>
+      <td>${esc(t.head_text)}</td><td>${t.is_stop?'·':''}</td>
+      <td style="color:var(--muted);font-size:10px">${t.morph||''}</td></tr>`;
   }).join('');
 
+  // Tree
   document.getElementById('tree-root-label').textContent = `root: ${s.root_text}`;
   drawDepTree(s);
-  document.getElementById('json-block').innerHTML = syntaxHighlight(JSON.stringify(s, null, 2));
+
+  // JSON
+  document.getElementById('json-block').innerHTML = syntaxHighlight(JSON.stringify(s,null,2));
+
+  // Semantics
+  if (s.semantic) renderSemantics(s);
 }
 
-function setRole(id, val) {
-  const el = document.getElementById(id);
-  if (val) { el.textContent = val; el.className = el.className.replace(' sv-none',''); }
-  else { el.textContent = '—'; if (!el.className.includes('sv-none')) el.className += ' sv-none'; }
+// ══ Semantics ══════════════════════════════════
+function renderSemantics(s) {
+  const sem = s.semantic;
+  drawConstituencyTree(s.constituency_tree);
+
+  // ── NER ──
+  renderNER(s.original, sem.entities);
+
+  // Entity chips
+  document.getElementById('ent-chips').innerHTML = sem.entities.length
+    ? sem.entities.map(e => `<div class="ent-chip ner-${e.label}" title="${e.label_desc}">
+        <span class="ent-text">${esc(e.text)}</span>
+        <span class="ent-label">${e.label}</span></div>`).join('')
+    : '<span style="color:var(--muted);font-size:13px">No named entities found</span>';
+
+  // ── SRL ──
+  const srlEl = document.getElementById('srl-frames');
+  if (!sem.semantic_roles.length) {
+    srlEl.innerHTML = '<p style="color:var(--muted);font-size:13px">No verbal predicates found.</p>';
+  } else {
+    srlEl.innerHTML = sem.semantic_roles.map(fr => {
+      const roles = [
+        { key:'agent',      cls:'r-agent',     icon:'👤', label:'Agent' },
+        { key:'patient',    cls:'r-patient',   icon:'🎯', label:'Patient' },
+        { key:'location',   cls:'r-location',  icon:'📍', label:'Location' },
+        { key:'time',       cls:'r-time',       icon:'⏰', label:'Time' },
+        { key:'instrument', cls:'r-instrument',icon:'🔧', label:'Instrument' },
+        { key:'purpose',    cls:'r-purpose',   icon:'🎪', label:'Purpose' },
+        { key:'manner',     cls:'r-manner',    icon:'💨', label:'Manner' },
+      ].filter(r => fr[r.key]);
+      const cells = roles.map(r =>
+        `<div class="srl-role-cell">
+          <div class="srl-role-name">${r.icon} ${r.label}</div>
+          <div class="srl-role-val ${r.cls}">${esc(fr[r.key])}</div>
+        </div>`).join('');
+      const extra = fr.extra_args&&fr.extra_args.length
+        ? `<div class="srl-role-cell"><div class="srl-role-name">📌 Extra</div><div class="srl-role-val" style="color:#666">${fr.extra_args.map(esc).join(', ')}</div></div>`
+        : '';
+      return `<div class="srl-frame">
+        <div class="srl-frame-header">
+          <span class="srl-pred-word">${esc(fr.predicate)}</span>
+          <span class="srl-pred-lemma">/ ${esc(fr.predicate_lemma)}</span>
+        </div>
+        <div class="srl-roles-grid">${cells}${extra}${!cells&&!extra?'<div class="srl-role-cell"><div class="srl-role-val r-none">No arguments found</div></div>':''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Keywords ──
+  document.getElementById('keyword-chips').innerHTML = sem.keywords.length
+    ? sem.keywords.map(k => `<div class="kw-chip">${esc(k)}</div>`).join('')
+    : '<span style="color:var(--muted);font-size:13px">—</span>';
+
+  // ── Noun chunks ──
+  document.getElementById('nc-chips').innerHTML = sem.noun_chunks.length
+    ? sem.noun_chunks.map(c => `<div class="nc-chip" title="root: ${esc(c.root_text)} (${c.root_dep}) → ${esc(c.root_head_text)}">
+        <div class="nc-text">${esc(c.text)}</div>
+        <div class="nc-dep">${c.root_dep}</div></div>`).join('')
+    : '<span style="color:var(--muted);font-size:13px">—</span>';
 }
 
-// ══════════════════════════════════════════════
-// Dependency Tree SVG
-// ══════════════════════════════════════════════
+function drawConstituencyTree(tree) {
+  const svg = document.getElementById('const-svg');
+  svg.innerHTML = '';
+  if (!tree) return;
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const NODE_W = 130, NODE_H = 38;
+  const GAP_X = 18, GAP_Y = 62;
+  const PAD_X = 24, PAD_Y = 24;
+
+  const levels = [];
+  const walk = (node, depth = 0) => {
+    if (!levels[depth]) levels[depth] = [];
+    levels[depth].push(node);
+    (node.children || []).forEach(ch => walk(ch, depth + 1));
+  };
+  walk(tree);
+
+  const maxCols = Math.max(...levels.map(l => l.length), 1);
+  const width = PAD_X * 2 + maxCols * NODE_W + (maxCols - 1) * GAP_X;
+  const height = PAD_Y * 2 + levels.length * NODE_H + (levels.length - 1) * GAP_Y;
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+  const defs = document.createElementNS(NS, 'defs');
+  defs.innerHTML = `<marker id="arrow-const" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M1,1 L7,4 L1,7 Z" fill="#C8C2B4"/></marker>`;
+  svg.appendChild(defs);
+
+  const pos = new Map();
+  levels.forEach((nodes, depth) => {
+    const rowWidth = nodes.length * NODE_W + (nodes.length - 1) * GAP_X;
+    const startX = (width - rowWidth) / 2;
+    const y = PAD_Y + depth * (NODE_H + GAP_Y);
+    nodes.forEach((node, i) => pos.set(node, { x: startX + i * (NODE_W + GAP_X), y }));
+  });
+
+  const drawEdges = (node) => {
+    const p = pos.get(node);
+    (node.children || []).forEach(ch => {
+      const c = pos.get(ch);
+      if (!p || !c) return;
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', p.x + NODE_W / 2);
+      line.setAttribute('y1', p.y + NODE_H);
+      line.setAttribute('x2', c.x + NODE_W / 2);
+      line.setAttribute('y2', c.y - 8);
+      line.setAttribute('stroke', '#C8C2B4');
+      line.setAttribute('stroke-width', '1.3');
+      line.setAttribute('marker-end', 'url(#arrow-const)');
+      svg.appendChild(line);
+      drawEdges(ch);
+    });
+  };
+  drawEdges(tree);
+
+  const colors = { S:'#0A0C10', VP:'#2D6A4F', NP:'#1B4F8A', PP:'#C84B31', ADVP:'#7B3F9E', V:'#B5860D' };
+  const drawNodes = (node) => {
+    const p = pos.get(node);
+    if (!p) return;
+    const color = colors[node.label] || '#555';
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', p.x);
+    rect.setAttribute('y', p.y);
+    rect.setAttribute('width', NODE_W);
+    rect.setAttribute('height', NODE_H);
+    rect.setAttribute('rx', '6');
+    rect.setAttribute('fill', 'white');
+    rect.setAttribute('stroke', color);
+    rect.setAttribute('stroke-width', '1.5');
+    svg.appendChild(rect);
+
+    const lbl = document.createElementNS(NS, 'text');
+    lbl.setAttribute('x', String(p.x + NODE_W / 2));
+    lbl.setAttribute('y', String(p.y + 14));
+    lbl.setAttribute('text-anchor', 'middle');
+    lbl.setAttribute('font-family', 'IBM Plex Mono,monospace');
+    lbl.setAttribute('font-size', '10');
+    lbl.setAttribute('font-weight', '700');
+    lbl.setAttribute('fill', color);
+    lbl.textContent = node.label || '';
+    svg.appendChild(lbl);
+
+    const text = document.createElementNS(NS, 'text');
+    text.setAttribute('x', String(p.x + NODE_W / 2));
+    text.setAttribute('y', String(p.y + 29));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-family', 'IBM Plex Mono,monospace');
+    text.setAttribute('font-size', '9');
+    text.setAttribute('fill', '#666');
+    text.textContent = (node.text || '').slice(0, 22);
+    svg.appendChild(text);
+
+    (node.children || []).forEach(drawNodes);
+  };
+  drawNodes(tree);
+}
+
+function renderNER(text, entities) {
+  const nerEl = document.getElementById('ner-text');
+  if (!entities || !entities.length) { nerEl.innerHTML = esc(text); return; }
+  // Sort by start position, no overlaps
+  const sorted = [...entities].sort((a,b) => a.start_char - b.start_char);
+  let html = '', pos = 0;
+  for (const e of sorted) {
+    if (e.start_char < pos) continue; // skip overlaps
+    html += esc(text.slice(pos, e.start_char));
+    html += `<mark class="ner-mark ner-${e.label}" data-label="${e.label}" title="${e.label_desc}">${esc(e.text)}</mark>`;
+    pos = e.end_char;
+  }
+  html += esc(text.slice(pos));
+  nerEl.innerHTML = html;
+}
+
+// ══ Dep Tree SVG ══════════════════════════════
 function drawDepTree(sent) {
   const svg = document.getElementById('dep-svg');
   svg.innerHTML = '';
-  const tokens = sent.tokens;
-  const N = tokens.length;
-  if (!N) return;
+  const tree = sent.tree;
+  if (!tree) return;
 
-  const COL_W = 88, PAD_X = 40;
-  const W = N * COL_W + PAD_X * 2;
-  const H = 220;
-  svg.setAttribute('width', W);
-  svg.setAttribute('height', H);
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const NS = 'http://www.w3.org/2000/svg';
+  const NODE_W = 120, NODE_H = 38;
+  const GAP_X = 18, GAP_Y = 64;
+  const PAD_X = 24, PAD_Y = 24;
+  const pcm = {NOUN:'#1B4F8A',PROPN:'#1B4F8A',VERB:'#2D6A4F',ADJ:'#B5860D',ADV:'#7B3F9E',DET:'#A0522D',ADP:'#C84B31',PRON:'#1B4F8A',CCONJ:'#666',CONJ:'#666',SCONJ:'#666',NUM:'#2D6A4F',PUNCT:'#bbb'};
 
-  const tokenY = H - 40;
-  const xs = tokens.map((_, i) => PAD_X + i * COL_W + COL_W/2);
+  const levels = [];
+  const traverse = (node, depth = 0) => {
+    if (!levels[depth]) levels[depth] = [];
+    levels[depth].push(node);
+    (node.children || []).forEach(c => traverse(c, depth + 1));
+  };
+  traverse(tree);
 
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  defs.innerHTML = `<marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#C8C2B4"/></marker>`;
+  const maxCols = Math.max(...levels.map(l => l.length), 1);
+  const width = PAD_X * 2 + maxCols * NODE_W + (maxCols - 1) * GAP_X;
+  const height = PAD_Y * 2 + levels.length * NODE_H + (levels.length - 1) * GAP_Y;
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+  const defs = document.createElementNS(NS, 'defs');
+  defs.innerHTML = `<marker id="arrow-down" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M1,1 L7,4 L1,7 Z" fill="#C8C2B4"/></marker>`;
   svg.appendChild(defs);
 
-  tokens.forEach(tok => {
-    if (tok.dep === 'ROOT' || tok.head_index === tok.index) return;
-    const x1 = xs[tok.index], x2 = xs[tok.head_index];
-    const midX = (x1 + x2) / 2;
-    const span = Math.abs(tok.index - tok.head_index);
-    const arcH = Math.min(25 + span * 22, tokenY - 30);
-    const arcY = tokenY - arcH;
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', `M ${x1} ${tokenY-16} C ${x1} ${arcY}, ${x2} ${arcY}, ${x2} ${tokenY-16}`);
-    path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#C8C2B4');
-    path.setAttribute('stroke-width', '1.5'); path.setAttribute('marker-end', 'url(#arrow)');
-    svg.appendChild(path);
-
-    const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    lbl.setAttribute('x', midX); lbl.setAttribute('y', arcY - 4);
-    lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('font-family', 'IBM Plex Mono, monospace');
-    lbl.setAttribute('font-size', '9'); lbl.setAttribute('fill', '#999');
-    lbl.textContent = tok.dep;
-    svg.appendChild(lbl);
+  const pos = new Map();
+  levels.forEach((nodes, depth) => {
+    const rowWidth = nodes.length * NODE_W + (nodes.length - 1) * GAP_X;
+    const startX = (width - rowWidth) / 2;
+    const y = PAD_Y + depth * (NODE_H + GAP_Y);
+    nodes.forEach((node, i) => {
+      pos.set(node, { x: startX + i * (NODE_W + GAP_X), y });
+    });
   });
 
-  const posColorMap = { NOUN:'#1B4F8A',PROPN:'#1B4F8A',VERB:'#2D6A4F',ADJ:'#B5860D',ADV:'#7B3F9E',DET:'#A0522D',ADP:'#C84B31',PRON:'#1B4F8A',CCONJ:'#666',CONJ:'#666',SCONJ:'#666',NUM:'#2D6A4F',PUNCT:'#bbb' };
+  const drawEdges = (node) => {
+    const p = pos.get(node);
+    (node.children || []).forEach(ch => {
+      const c = pos.get(ch);
+      if (!p || !c) return;
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', p.x + NODE_W / 2);
+      line.setAttribute('y1', p.y + NODE_H);
+      line.setAttribute('x2', c.x + NODE_W / 2);
+      line.setAttribute('y2', c.y - 8);
+      line.setAttribute('stroke', '#C8C2B4');
+      line.setAttribute('stroke-width', '1.4');
+      line.setAttribute('marker-end', 'url(#arrow-down)');
+      svg.appendChild(line);
 
-  tokens.forEach((tok, i) => {
-    const x = xs[i];
-    const isRoot = tok.dep === 'ROOT';
-    const color = posColorMap[tok.pos] || '#444';
-    const rw = Math.max(tok.text.length * 8 + 16, 54);
+      const dep = document.createElementNS(NS, 'text');
+      dep.setAttribute('x', String((p.x + c.x) / 2 + NODE_W / 2));
+      dep.setAttribute('y', String((p.y + c.y) / 2 + NODE_H / 2 - 6));
+      dep.setAttribute('text-anchor', 'middle');
+      dep.setAttribute('font-family', 'IBM Plex Mono,monospace');
+      dep.setAttribute('font-size', '9');
+      dep.setAttribute('fill', '#888');
+      dep.textContent = ch.dep || '';
+      svg.appendChild(dep);
 
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', x - rw/2); rect.setAttribute('y', tokenY - 14);
-    rect.setAttribute('width', rw); rect.setAttribute('height', 28); rect.setAttribute('rx', '4');
+      drawEdges(ch);
+    });
+  };
+  drawEdges(tree);
+
+  const drawNodes = (node) => {
+    const p = pos.get(node);
+    if (!p) return;
+    const isRoot = node.dep === 'ROOT';
+    const color = pcm[node.pos] || '#444';
+
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', p.x);
+    rect.setAttribute('y', p.y);
+    rect.setAttribute('width', NODE_W);
+    rect.setAttribute('height', NODE_H);
+    rect.setAttribute('rx', '6');
     rect.setAttribute('fill', isRoot ? '#0A0C10' : 'white');
     rect.setAttribute('stroke', isRoot ? '#0A0C10' : color);
     rect.setAttribute('stroke-width', isRoot ? '2' : '1.5');
     svg.appendChild(rect);
 
-    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    txt.setAttribute('x', x); txt.setAttribute('y', tokenY + 4);
-    txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('font-family', 'IBM Plex Mono, monospace');
-    txt.setAttribute('font-size', '12'); txt.setAttribute('font-weight', '600');
+    const txt = document.createElementNS(NS, 'text');
+    txt.setAttribute('x', String(p.x + NODE_W / 2));
+    txt.setAttribute('y', String(p.y + 16));
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('font-family', 'IBM Plex Mono,monospace');
+    txt.setAttribute('font-size', '12');
+    txt.setAttribute('font-weight', '600');
     txt.setAttribute('fill', isRoot ? 'white' : color);
-    txt.textContent = tok.text;
+    txt.textContent = node.text;
     svg.appendChild(txt);
 
-    const pos = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    pos.setAttribute('x', x); pos.setAttribute('y', tokenY + 26);
-    pos.setAttribute('text-anchor', 'middle'); pos.setAttribute('font-family', 'IBM Plex Mono, monospace');
-    pos.setAttribute('font-size', '9'); pos.setAttribute('fill', color); pos.setAttribute('opacity', '.7');
-    pos.textContent = tok.pos;
-    svg.appendChild(pos);
-  });
+    const posTag = document.createElementNS(NS, 'text');
+    posTag.setAttribute('x', String(p.x + NODE_W / 2));
+    posTag.setAttribute('y', String(p.y + 30));
+    posTag.setAttribute('text-anchor', 'middle');
+    posTag.setAttribute('font-family', 'IBM Plex Mono,monospace');
+    posTag.setAttribute('font-size', '9');
+    posTag.setAttribute('fill', isRoot ? '#C8C2B4' : color);
+    posTag.setAttribute('opacity', '.8');
+    posTag.textContent = `${node.pos || ''}`;
+    svg.appendChild(posTag);
+
+    (node.children || []).forEach(drawNodes);
+  };
+  drawNodes(tree);
 }
 
-// ══════════════════════════════════════════════
-// Tabs
-// ══════════════════════════════════════════════
+// ══ Tabs ═══════════════════════════════════════
 function showTab(name, btn) {
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
   btn.classList.add('active');
 }
 
-// ══════════════════════════════════════════════
-// Legend
-// ══════════════════════════════════════════════
+// ══ Legend ═════════════════════════════════════
 function buildLegend() {
-  const items = [
-    ['NOUN/PROPN','var(--c-noun)','Noun'],
-    ['VERB','var(--c-verb)','Verb'],
-    ['ADJ','var(--c-adj)','Adjective'],
-    ['ADV','var(--c-adv)','Adverb'],
-    ['DET','var(--c-det)','Determiner'],
-    ['ADP','var(--c-prep)','Preposition'],
-    ['PRON','var(--c-pron)','Pronoun'],
-    ['CONJ','var(--c-conj)','Conjunction'],
-  ];
-  document.getElementById('legend').innerHTML = items.map(([tag,c,label]) =>
-    `<div class="leg"><div class="leg-dot" style="background:${c}"></div><span style="color:${c};font-weight:600">${tag}</span> ${label}</div>`
-  ).join('');
+  const items=[['NOUN/PROPN','var(--c-noun)','Noun'],['VERB','var(--c-verb)','Verb'],['ADJ','var(--c-adj)','Adj'],['ADV','var(--c-adv)','Adv'],['DET','var(--c-det)','Det'],['ADP','var(--c-prep)','Prep'],['PRON','var(--c-pron)','Pron'],['CONJ','var(--c-conj)','Conj']];
+  document.getElementById('legend').innerHTML=items.map(([t,c,l])=>`<div class="leg"><div class="leg-dot" style="background:${c}"></div><span style="color:${c};font-weight:600">${t}</span> ${l}</div>`).join('');
 }
 
-// ══════════════════════════════════════════════
-// Helpers
-// ══════════════════════════════════════════════
-function posVar(pos) {
-  return {NOUN:'noun',PROPN:'noun',VERB:'verb',ADJ:'adj',ADV:'adv',DET:'det',ADP:'prep',PRON:'pron',CCONJ:'conj',CONJ:'conj',SCONJ:'conj',PUNCT:'punct'}[pos] || 'other';
-}
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function syntaxHighlight(json) {
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
-    let cls = 'j-num';
-    if (/^"/.test(m)) { cls = /:$/.test(m) ? 'j-key' : 'j-str'; }
-    else if (/true|false/.test(m)) cls = 'j-bool';
-    else if (/null/.test(m)) cls = 'j-null';
-    return `<span class="${cls}">${m}</span>`;
-  });
-}
-async function copyJson() {
-  const text = document.getElementById('json-block').textContent;
-  await navigator.clipboard.writeText(text);
-  toast('JSON copied to clipboard');
-}
-function toast(msg, isErr=false) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.borderLeftColor = isErr ? 'var(--accent)' : 'var(--accent2)';
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3200);
-}
+// ══ Helpers ════════════════════════════════════
+function setRole(id,val){const el=document.getElementById(id);if(val){el.textContent=val;el.className=el.className.replace(' sv-none','')}else{el.textContent='—';if(!el.className.includes('sv-none'))el.className+=' sv-none'}}
+function posVar(p){return{NOUN:'noun',PROPN:'noun',VERB:'verb',ADJ:'adj',ADV:'adv',DET:'det',ADP:'prep',PRON:'pron',CCONJ:'conj',CONJ:'conj',SCONJ:'conj',PUNCT:'punct'}[p]||'other'}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function syntaxHighlight(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{let c='j-num';if(/^"/.test(m)){c=/:$/.test(m)?'j-key':'j-str'}else if(/true|false/.test(m))c='j-bool';else if(/null/.test(m))c='j-null';return`<span class="${c}">${m}</span>`})}
+async function copyJson(){await navigator.clipboard.writeText(document.getElementById('json-block').textContent);toast('JSON copied')}
+function toast(msg,isErr=false){const el=document.getElementById('toast');el.textContent=msg;el.style.borderLeftColor=isErr?'var(--accent)':'var(--accent2)';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200)}
 
-// ══════════════════════════════════════════════
-// Help modal
-// ══════════════════════════════════════════════
-function openHelp() {
-  document.getElementById('help-overlay').classList.add('open');
-}
-function closeHelp() {
-  document.getElementById('help-overlay').classList.remove('open');
-}
-function closeHelpOutside(e) {
-  if (e.target === document.getElementById('help-overlay')) closeHelp();
-}
-function helpSection(name, btn) {
-  document.querySelectorAll('.hs-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.hn-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`hs-${name}`).classList.add('active');
-  btn.classList.add('active');
-}
+// ══ Help ═══════════════════════════════════════
+function openHelp(){document.getElementById('help-overlay').classList.add('open')}
+function closeHelp(){document.getElementById('help-overlay').classList.remove('open')}
+function closeHelpOutside(e){if(e.target===document.getElementById('help-overlay'))closeHelp()}
+function helpSection(name,btn){document.querySelectorAll('.hs-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.hn-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`hs-${name}`).classList.add('active');btn.classList.add('active')}
 
-// ══════════════════════════════════════════════
-// Keyboard shortcuts
-// ══════════════════════════════════════════════
+// ══ Keyboard shortcuts ═════════════════════════
 document.addEventListener('keydown', e => {
-  const inInput  = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
-  const helpOpen = document.getElementById('help-overlay').classList.contains('open');
-
-  if (e.key === 'Escape')            { closeHelp(); return; }
-  if (e.key === '?' && !inInput)     { helpOpen ? closeHelp() : openHelp(); return; }
-  if (helpOpen) return;
-  if (e.key === 'Enter' && e.ctrlKey){ e.preventDefault(); runAnalysis(); return; }
-  if (inInput) return;
-
-  if (e.key === 'ArrowRight' && allResults)
-    selectSent(Math.min(currentSentIdx + 1, allResults.sentences.length - 1));
-  if (e.key === 'ArrowLeft' && allResults)
-    selectSent(Math.max(currentSentIdx - 1, 0));
-
-  const tabMap = {'1':'summary','2':'tokens','3':'tree','4':'json'};
-  if (tabMap[e.key]) {
-    const btns = document.querySelectorAll('.tab-btn');
-    const idx  = parseInt(e.key) - 1;
-    if (btns[idx]) showTab(tabMap[e.key], btns[idx]);
-  }
+  const inInput=['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+  const helpOpen=document.getElementById('help-overlay').classList.contains('open');
+  if(e.key==='Escape'){closeHelp();return}
+  if(e.key==='?'&&!inInput){helpOpen?closeHelp():openHelp();return}
+  if(helpOpen)return;
+  if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();runAnalysis();return}
+  if(inInput)return;
+  if(e.key==='ArrowRight'&&allResults)selectSent(Math.min(currentSentIdx+1,allResults.sentences.length-1));
+  if(e.key==='ArrowLeft'&&allResults)selectSent(Math.max(currentSentIdx-1,0));
+  const tm={'1':'summary','2':'semantics','3':'tokens','4':'tree','5':'json'};
+  if(tm[e.key]){const btns=document.querySelectorAll('.tab-btn');const idx=parseInt(e.key)-1;if(btns[idx])showTab(tm[e.key],btns[idx])}
 });
 </script>
 </body>
